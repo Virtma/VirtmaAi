@@ -1,0 +1,107 @@
+<?xml version = "1.0" encoding = "UTF-8" ?>
+<Application xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:local="clr-namespace:VirtmaAi"
+             xmlns:conv="clr-namespace:VirtmaAi.Converters"
+             xmlns:dbvm="clr-namespace:VirtmaAi.ViewModels.Database"
+             xmlns:mdtheme="clr-namespace:Indiko.Maui.Controls.Markdown.Theming;assembly=Indiko.Maui.Controls.Markdown"
+             x:Class="VirtmaAi.App">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
+                <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <mdtheme:MarkdownTheme x:Key="ChatMarkdownTheme">
+                <mdtheme:MarkdownTheme.Palette>
+                    <mdtheme:MarkdownPalette TextPrimary="#0A0A0A"
+                                             TextSecondary="#555555"
+                                             TextDisabled="#888888"
+                                             Background="#FFFFFF"
+                                             Surface="#F5F5F5"
+                                             Primary="#E10600"
+                                             Secondary="#FF3B30"
+                                             HyperlinkColor="#E10600"
+                                             H1Color="#0A0A0A"
+                                             H2Color="#0A0A0A"
+                                             H3Color="#0A0A0A"
+                                             H4Color="#0A0A0A"
+                                             H5Color="#0A0A0A"
+                                             H6Color="#0A0A0A"
+                                             CodeBlockBackground="#F0F0F0"
+                                             CodeBlockBorder="#D0D0D0"
+                                             CodeBlockText="#B85C00"
+                                             BlockQuoteBackground="#F5F5F5"
+                                             BlockQuoteBorder="#E10600"
+                                             BlockQuoteText="#333333"
+                                             TableHeaderBackground="#EAEAEA"
+                                             TableHeaderText="#0A0A0A"
+                                             TableRowBackground="#FFFFFF"
+                                             TableRowText="#0A0A0A"
+                                             TableBorder="#D0D0D0"
+                                             DividerColor="#D0D0D0"/>
+                </mdtheme:MarkdownTheme.Palette>
+                <mdtheme:MarkdownTheme.PaletteDark>
+                    <!-- Code background is intentionally LIGHTER than the message surface
+                         (#1f1f1f vs #141414) so inline `code` and ```fenced``` blocks visibly
+                         "lift" off the message bubble. Code text uses a warm yellow so it
+                         further separates from prose, like classic IDEs do. -->
+                    <mdtheme:MarkdownPaletteDark TextPrimary="#FFFFFF"
+                                                 TextSecondary="#ACACAC"
+                                                 TextDisabled="#6E6E6E"
+                                                 Background="#0A0A0A"
+                                                 Surface="#141414"
+                                                 Primary="#E10600"
+                                                 Secondary="#FF3B30"
+                                                 HyperlinkColor="#FF3B30"
+                                                 H1Color="#FFFFFF"
+                                                 H2Color="#FFFFFF"
+                                                 H3Color="#FFFFFF"
+                                                 H4Color="#FFFFFF"
+                                                 H5Color="#FFFFFF"
+                                                 H6Color="#FFFFFF"
+                                                 CodeBlockBackground="#1f1f1f"
+                                                 CodeBlockBorder="#525252"
+                                                 CodeBlockText="#FFE082"
+                                                 BlockQuoteBackground="#141414"
+                                                 BlockQuoteBorder="#E10600"
+                                                 BlockQuoteText="#ACACAC"
+                                                 TableHeaderBackground="#141414"
+                                                 TableHeaderText="#FFFFFF"
+                                                 TableRowBackground="#0A0A0A"
+                                                 TableRowText="#FFFFFF"
+                                                 TableBorder="#404040"
+                                                 DividerColor="#404040"/>
+                </mdtheme:MarkdownTheme.PaletteDark>
+                <mdtheme:MarkdownTheme.Typography>
+                    <!-- CodeFontFamily intentionally omitted — "Consolas" is a Windows system font that
+                         Indiko tries to load as Assets/Fonts/Consolas.otf which doesn't exist.
+                         Leaving it blank lets the platform use its default monospace face. -->
+                    <mdtheme:MarkdownTypography DefaultFontFamily="OpenSansRegular"
+                                                HeadingFontFamily="OpenSansSemibold"
+                                                CodeFontSize="13"
+                                                BlockQuoteFontFamily="OpenSansRegular"/>
+                </mdtheme:MarkdownTheme.Typography>
+            </mdtheme:MarkdownTheme>
+
+            <conv:StepEqualsConverter x:Key="StepEqualsConverter"/>
+            <conv:InverseBoolConverter x:Key="InverseBoolConverter"/>
+            <conv:IsNotNullOrEmptyConverter x:Key="IsNotNullOrEmptyConverter"/>
+            <conv:IsNotNullConverter x:Key="IsNotNullConverter"/>
+            <conv:StepShowNextConverter x:Key="StepShowNextConverter"/>
+            <conv:IsGreaterThanZeroConverter x:Key="IsGreaterThanZeroConverter"/>
+            <conv:LogKindToColorConverter x:Key="LogKindToColorConverter"/>
+            <conv:ConversationModeLabelConverter x:Key="ConversationModeLabelConverter"/>
+            <conv:ConversationModeNeedsDirConverter x:Key="ConversationModeNeedsDirConverter"/>
+            <conv:EqualsStringConverter x:Key="EqualsStringConverter"/>
+            <conv:StringEqualsInvertedConverter x:Key="StringEqualsInvertedConverter"/>
+            <conv:MultiStringEqualsConverter x:Key="MultiStringEqualsConverter"/>
+            <conv:BoolToSelectionModeConverter x:Key="BoolToSelectionModeConverter"/>
+            <conv:PercentToProgressConverter x:Key="PercentToProgressConverter"/>
+            <conv:FileNameConverter x:Key="FileNameConverter"/>
+            <dbvm:ResultRowJoinConverter x:Key="ResultRowJoinConverter"/>
+            <dbvm:StringJoinConverter x:Key="StringJoinConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Chat"
+             xmlns:models="clr-namespace:VirtmaAi.Models.Entities"
+             xmlns:preview="clr-namespace:VirtmaAi.Views.Preview"
+             xmlns:pvm="clr-namespace:VirtmaAi.ViewModels.Preview"
+             xmlns:media="clr-namespace:VirtmaAi.Services.Media"
+             xmlns:chatviews="clr-namespace:VirtmaAi.Views.Chat"
+             xmlns:markdown="clr-namespace:Indiko.Maui.Controls.Markdown;assembly=Indiko.Maui.Controls.Markdown"
+             x:Class="VirtmaAi.Views.Chat.ChatPage"
+             x:DataType="vm:ChatViewModel"
+             Title="VirtmaAi"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid ColumnDefinitions="280,*,Auto" BackgroundColor="{StaticResource SurfaceDark}">
+
+        <!-- Sidebar -->
+        <Grid Grid.Column="0"
+              BackgroundColor="{StaticResource SurfaceDarkAlt}"
+              RowDefinitions="Auto,Auto,Auto,*">
+            <VerticalStackLayout Grid.Row="0" Padding="16" Spacing="6">
+                <Label Text="VirtmaAi"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="White"/>
+                <BoxView HeightRequest="1" Color="{StaticResource Gray600}"/>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Grid.Row="1" Padding="16,8" Spacing="8">
+                <Button Text="+ New conversation"
+                        Command="{Binding NewCommand}"
+                        BackgroundColor="{StaticResource Accent}"
+                        TextColor="White"
+                        SemanticProperties.Hint="Start a new conversation"/>
+                <Label Text="Mode" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Picker TitleColor="{StaticResource Gray300}"
+                        TextColor="White"
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        ItemsSource="{Binding AvailableModes}"
+                        ItemDisplayBinding="{Binding ., Converter={StaticResource ConversationModeLabelConverter}}"
+                        SelectedItem="{Binding NewConversationMode, Mode=TwoWay}"/>
+            </VerticalStackLayout>
+
+            <Grid Grid.Row="2" Padding="16,0,16,8" ColumnDefinitions="*,Auto" ColumnSpacing="4"
+                  IsVisible="{Binding IsMultiSelectMode, Converter={StaticResource InverseBoolConverter}}">
+                <Button Grid.Column="0"
+                        Text="Select multiple"
+                        Command="{Binding ToggleMultiSelectCommand}"
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        TextColor="White"
+                        FontSize="12"
+                        HeightRequest="32"/>
+                <Button Grid.Column="1"
+                        Text="⟳"
+                        Command="{Binding RefreshModelsCommand}"
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        TextColor="White"
+                        FontSize="14"
+                        WidthRequest="40"
+                        HeightRequest="32"
+                        SemanticProperties.Hint="Refresh installed Ollama models"/>
+            </Grid>
+
+            <Grid Grid.Row="2"
+                  Padding="16,0,16,8"
+                  ColumnDefinitions="Auto,Auto,Auto,*,Auto"
+                  ColumnSpacing="4"
+                  IsVisible="{Binding IsMultiSelectMode}">
+                <Button Grid.Column="0"
+                        Text="All"
+                        Command="{Binding SelectAllConversationsCommand}"
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        TextColor="White"
+                        FontSize="11"
+                        HeightRequest="30"/>
+                <Button Grid.Column="1"
+                        Text="None"
+                        Command="{Binding DeselectAllConversationsCommand}"
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        TextColor="White"
+                        FontSize="11"
+                        HeightRequest="30"/>
+                <Button Grid.Column="2"
+                        Text="Cancel"
+                        Command="{Binding ToggleMultiSelectCommand}"
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        TextColor="White"
+                        FontSize="11"
+                        HeightRequest="30"/>
+                <Button Grid.Column="4"
+                        Text="🗑 Delete"
+                        Command="{Binding DeleteSelectedCommand}"
+                        BackgroundColor="{StaticResource AccentInteractive}"
+                        TextColor="White"
+                        FontSize="11"
+                        HeightRequest="30"
+                        SemanticProperties.Hint="Delete selected conversations"/>
+            </Grid>
+
+            <CollectionView Grid.Row="3"
+                            x:Name="ConversationsList"
+                            ItemsSource="{Binding Conversations}"
+                            SelectedItem="{Binding ActiveConversation, Mode=TwoWay}"
+                            SelectedItems="{Binding SelectedConversations, Mode=TwoWay}"
+                            SelectionMode="{Binding IsMultiSelectMode, Converter={StaticResource BoolToSelectionModeConverter}}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ConversationListItem">
+                        <Grid Padding="16,10" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                            <VerticalStackLayout Grid.Column="0">
+                                <Label Text="{Binding Title}"
+                                       TextColor="White"
+                                       FontSize="14"
+                                       LineBreakMode="TailTruncation"/>
+                                <Label Text="{Binding Mode, Converter={StaticResource ConversationModeLabelConverter}}"
+                                       TextColor="{StaticResource Gray400}"
+                                       FontSize="10"/>
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1"
+                                    Text="✕"
+                                    FontSize="10"
+                                    WidthRequest="28"
+                                    HeightRequest="28"
+                                    Padding="0"
+                                    BackgroundColor="Transparent"
+                                    TextColor="{StaticResource Gray400}"
+                                    BorderColor="{StaticResource Gray600}"
+                                    BorderWidth="1"
+                                    Command="{Binding Source={x:Reference ConversationsList}, Path=BindingContext.DeleteCommand}"
+                                    CommandParameter="{Binding .}"
+                                    SemanticProperties.Hint="Delete this conversation"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- Main -->
+        <Grid Grid.Column="1"
+              RowDefinitions="Auto,Auto,*,Auto"
+              Padding="0">
+
+            <Grid Grid.Row="0"
+                  Padding="16,12"
+                  BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                  ColumnDefinitions="*,Auto,Auto,Auto"
+                  ColumnSpacing="8">
+                <Grid Grid.Column="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6">
+                    <Label Grid.Column="0"
+                           Text="{Binding ActiveConversation.Title, FallbackValue='Select or start a conversation'}"
+                           TextColor="White"
+                           VerticalOptions="Center"
+                           FontSize="16"
+                           LineBreakMode="TailTruncation"
+                           IsVisible="{Binding IsEditingTitle, Converter={StaticResource InverseBoolConverter}}"/>
+                    <Button Grid.Column="1"
+                            Text="✎"
+                            FontSize="12"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            Padding="0"
+                            BackgroundColor="Transparent"
+                            TextColor="{StaticResource Gray300}"
+                            Command="{Binding BeginRenameTitleCommand}"
+                            IsVisible="{Binding IsEditingTitle, Converter={StaticResource InverseBoolConverter}}"
+                            SemanticProperties.Hint="Rename this conversation"/>
+                    <Entry Grid.Column="0" Grid.ColumnSpan="2"
+                           x:Name="TitleEditEntry"
+                           Text="{Binding TitleDraft, Mode=TwoWay}"
+                           TextColor="White"
+                           PlaceholderColor="{StaticResource Gray500}"
+                           BackgroundColor="{StaticResource SurfaceDark}"
+                           IsVisible="{Binding IsEditingTitle}"/>
+                    <Button Grid.Column="2"
+                            Text="✓"
+                            FontSize="12"
+                            WidthRequest="32"
+                            HeightRequest="32"
+                            Padding="0"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="White"
+                            Command="{Binding CommitRenameTitleCommand}"
+                            IsVisible="{Binding IsEditingTitle}"/>
+                </Grid>
+                <Picker Grid.Column="1"
+                        Title="Model"
+                        TitleColor="{StaticResource Gray300}"
+                        TextColor="White"
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        WidthRequest="260"
+                        ItemsSource="{Binding AvailableModels}"
+                        ItemDisplayBinding="{Binding DisplayLabel}"
+                        SelectedItem="{Binding SelectedModel, Mode=TwoWay}"/>
+            </Grid>
+
+            <Grid Grid.Row="1"
+                  Padding="16,8"
+                  BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                  ColumnDefinitions="Auto,*,Auto,Auto"
+                  ColumnSpacing="8"
+                  IsVisible="{Binding NewConversationMode, Converter={StaticResource ConversationModeNeedsDirConverter}}">
+                <Label Grid.Column="0"
+                       Text="Project dir"
+                       TextColor="{StaticResource Gray300}"
+                       VerticalOptions="Center"
+                       FontSize="12"/>
+                <Entry Grid.Column="1"
+                       x:Name="ProjectDirEntry"
+                       Text="{Binding ProjectDir, Mode=OneWay}"
+                       Placeholder="(none — pick a folder to enable sandboxed Code mode)"
+                       TextColor="White"
+                       PlaceholderColor="{StaticResource Gray500}"
+                       BackgroundColor="{StaticResource SurfaceDark}"
+                       IsReadOnly="True"/>
+                <Button Grid.Column="2"
+                        Text="Browse…"
+                        Command="{Binding BrowseProjectDirCommand}"
+                        BackgroundColor="{StaticResource Accent}"
+                        TextColor="White"/>
+                <Button Grid.Column="3"
+                        Text="Clear"
+                        Command="{Binding SetProjectDirCommand}"
+                        CommandParameter=""
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        TextColor="White"/>
+            </Grid>
+
+            <CollectionView Grid.Row="2"
+                            x:Name="MessagesList"
+                            ItemsSource="{Binding Messages}"
+                            ItemSizingStrategy="MeasureAllItems"
+                            Margin="0"
+                            VerticalOptions="Fill">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ChatMessageItem">
+                        <Border Stroke="Transparent"
+                                BackgroundColor="{StaticResource SurfaceDark}"
+                                Padding="16,12">
+                            <VerticalStackLayout Spacing="6">
+                                <Label Text="{Binding Role}"
+                                       FontSize="11"
+                                       TextColor="{StaticResource Gray400}"/>
+
+                                <!-- Fast native renderer: used during streaming and for
+                                     settled messages that contain no fenced code blocks. -->
+                                <markdown:MarkdownView MarkdownText="{Binding Content}"
+                                                       Theme="{StaticResource ChatMarkdownTheme}"
+                                                       UseAppTheme="True"
+                                                       EnableCodeBlockCopy="True"
+                                                       CodeBlockCopyButtonText="Copy"
+                                                       CodeBlockCopyButtonCopiedText="Copied"
+                                                       LinkCommand="{Binding Source={x:Reference MessagesList}, Path=BindingContext.OpenLinkCommand}"
+                                                       EMailCommand="{Binding Source={x:Reference MessagesList}, Path=BindingContext.OpenEmailCommand}">
+                                    <markdown:MarkdownView.Triggers>
+                                        <!-- Hide the native view once streaming ends AND
+                                             the message has code blocks; WebView takes over. -->
+                                        <MultiTrigger TargetType="markdown:MarkdownView">
+                                            <MultiTrigger.Conditions>
+                                                <BindingCondition Binding="{Binding IsStreaming}" Value="False"/>
+                                                <BindingCondition Binding="{Binding HasCodeBlocks}" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter Property="IsVisible" Value="False"/>
+                                        </MultiTrigger>
+                                    </markdown:MarkdownView.Triggers>
+                                </markdown:MarkdownView>
+
+                                <!-- Highlighted renderer: WebView + highlight.js, only for
+                                     settled messages that contain at least one code block. -->
+                                <chatviews:HighlightedMarkdownView
+                                    MarkdownText="{Binding Content}"
+                                    IsDarkMode="True"
+                                    OpenLinkCommand="{Binding Source={x:Reference MessagesList}, Path=BindingContext.OpenLinkCommand}"
+                                    IsVisible="False">
+                                    <chatviews:HighlightedMarkdownView.Triggers>
+                                        <MultiTrigger TargetType="chatviews:HighlightedMarkdownView">
+                                            <MultiTrigger.Conditions>
+                                                <BindingCondition Binding="{Binding IsStreaming}" Value="False"/>
+                                                <BindingCondition Binding="{Binding HasCodeBlocks}" Value="True"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter Property="IsVisible" Value="True"/>
+                                        </MultiTrigger>
+                                    </chatviews:HighlightedMarkdownView.Triggers>
+                                </chatviews:HighlightedMarkdownView>
+                                <CollectionView ItemsSource="{Binding Images}"
+                                                IsVisible="{Binding Images.Count, Converter={StaticResource IsGreaterThanZeroConverter}}"
+                                                ItemSizingStrategy="MeasureAllItems">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="media:InlineImage">
+                                            <Image Source="{Binding Url}"
+                                                   Aspect="AspectFit"
+                                                   MaximumHeightRequest="320"
+                                                   Margin="0,6,0,0"/>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                                <CollectionView ItemsSource="{Binding Charts}"
+                                                IsVisible="{Binding Charts.Count, Converter={StaticResource IsGreaterThanZeroConverter}}"
+                                                ItemSizingStrategy="MeasureAllItems">
+                                    <CollectionView.ItemTemplate>
+                                        <DataTemplate x:DataType="media:ChartDefinition">
+                                            <chatviews:ChartView Chart="{Binding .}" Margin="0,6,0,0"/>
+                                        </DataTemplate>
+                                    </CollectionView.ItemTemplate>
+                                </CollectionView>
+                                <Border IsVisible="{Binding HasThinking}"
+                                        Stroke="{StaticResource Gray600}"
+                                        StrokeThickness="1"
+                                        BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                                        Padding="0"
+                                        Margin="0,4,0,0">
+                                    <VerticalStackLayout>
+                                        <!-- Header: tap to toggle expanded/collapsed. While streaming
+                                             thinking, the indicator pulses (FontAttributes=Bold). -->
+                                        <Button Text="{Binding ThinkingHeader}"
+                                                Command="{Binding ToggleThinkingCommand}"
+                                                BackgroundColor="Transparent"
+                                                BorderColor="Transparent"
+                                                Padding="10,8"
+                                                HorizontalOptions="Fill"
+                                                FontSize="11"
+                                                TextColor="{StaticResource Gray300}"/>
+                                        <ScrollView IsVisible="{Binding IsThinkingExpanded}"
+                                                    Padding="10,0,10,10"
+                                                    MaximumHeightRequest="320">
+                                            <Label Text="{Binding Thinking}"
+                                                   FontSize="12"
+                                                   TextColor="{StaticResource Gray300}"
+                                                   LineBreakMode="WordWrap"/>
+                                        </ScrollView>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Grid Grid.Row="3"
+                  BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                  RowDefinitions="Auto,Auto"
+                  Padding="16,8,16,12"
+                  RowSpacing="4">
+
+                <!-- Attached-file chips (hidden when no files queued) -->
+                <ScrollView Grid.Row="0"
+                            Orientation="Horizontal"
+                            IsVisible="{Binding AttachedFiles.Count, Converter={StaticResource IsGreaterThanZeroConverter}}"
+                            HeightRequest="34">
+                    <HorizontalStackLayout x:Name="AttachChips"
+                                           Spacing="6"
+                                           BindableLayout.ItemsSource="{Binding AttachedFiles}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <Border BackgroundColor="{StaticResource SurfaceDark}"
+                                        Stroke="{StaticResource Gray600}"
+                                        StrokeThickness="1"
+                                        Padding="8,4">
+                                    <Border.StrokeShape>
+                                        <RoundRectangle CornerRadius="12"/>
+                                    </Border.StrokeShape>
+                                    <HorizontalStackLayout Spacing="6">
+                                        <Label Text="{Binding ., Converter={StaticResource FileNameConverter}}"
+                                               TextColor="White"
+                                               FontSize="11"
+                                               VerticalOptions="Center"
+                                               MaximumWidthRequest="200"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Button Text="✕"
+                                                FontSize="10"
+                                                WidthRequest="20"
+                                                HeightRequest="20"
+                                                Padding="0"
+                                                BackgroundColor="Transparent"
+                                                TextColor="{StaticResource Gray400}"
+                                                Command="{Binding Source={x:Reference AttachChips}, Path=BindingContext.RemoveAttachmentCommand}"
+                                                CommandParameter="{Binding .}"/>
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </HorizontalStackLayout>
+                </ScrollView>
+
+                <!-- Input row: attach | text | send/stop -->
+                <Grid Grid.Row="1"
+                      ColumnDefinitions="Auto,*,Auto,Auto"
+                      ColumnSpacing="8">
+                    <Button Grid.Column="0"
+                            Text="📎"
+                            Command="{Binding AttachFileCommand}"
+                            BackgroundColor="{StaticResource SurfaceDark}"
+                            TextColor="{StaticResource Gray300}"
+                            WidthRequest="44"
+                            HeightRequest="44"
+                            FontSize="16"
+                            Padding="0"
+                            SemanticProperties.Hint="Attach a file to your message"/>
+                    <Editor Grid.Column="1"
+                            x:Name="InputEditor"
+                            Text="{Binding Draft, Mode=TwoWay}"
+                            Placeholder="Message… (Enter to send, Shift+Enter for newline)"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="44"
+                            MaximumHeightRequest="200"
+                            TextColor="{StaticResource TextPrimary}"
+                            PlaceholderColor="{StaticResource Gray500}"
+                            BackgroundColor="{StaticResource SurfaceDark}"/>
+                    <Button Grid.Column="2"
+                            Text="Send"
+                            Command="{Binding SendCommand}"
+                            IsVisible="{Binding IsStreaming, Converter={StaticResource InverseBoolConverter}}"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="White"
+                            SemanticProperties.Hint="Send current message"/>
+                    <Button Grid.Column="3"
+                            Text="Stop"
+                            Command="{Binding StopCommand}"
+                            IsVisible="{Binding IsStreaming}"
+                            BackgroundColor="{StaticResource AccentInteractive}"
+                            TextColor="White"
+                            SemanticProperties.Hint="Stop streaming response (Esc)"/>
+                </Grid>
+            </Grid>
+
+        </Grid>
+
+        <Grid Grid.Column="1"
+              Grid.Row="0"
+              VerticalOptions="Start"
+              Margin="16,68,16,0"
+              BackgroundColor="{StaticResource SurfaceDarkAlt}"
+              Padding="12,8"
+              ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto"
+              ColumnSpacing="8"
+              IsVisible="{Binding Notice, Converter={StaticResource IsNotNullOrEmptyConverter}}">
+            <Label Grid.Column="0" Text="{Binding Notice}" TextColor="White" VerticalOptions="Center"/>
+            <Button Grid.Column="1"
+                    Text="Open in viewer"
+                    Command="{Binding OpenDetectedUrlCommand}"
+                    IsVisible="{Binding DetectedMediaUrl, Converter={StaticResource IsNotNullOrEmptyConverter}}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"
+                    SemanticProperties.Hint="Open the detected URL or file in the preview panel"/>
+            <Button Grid.Column="2"
+                    Text="Apply theme"
+                    Command="{Binding AcceptDetectedThemeCommand}"
+                    IsVisible="{Binding DetectedThemeJson, Converter={StaticResource IsNotNullOrEmptyConverter}}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"/>
+            <Button Grid.Column="3"
+                    Text="Import skill"
+                    Command="{Binding AcceptDetectedSkillCommand}"
+                    IsVisible="{Binding DetectedSkillJson, Converter={StaticResource IsNotNullOrEmptyConverter}}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"/>
+            <Button Grid.Column="4"
+                    Text="Import routine"
+                    Command="{Binding AcceptDetectedRoutineCommand}"
+                    IsVisible="{Binding DetectedRoutineJson, Converter={StaticResource IsNotNullOrEmptyConverter}}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"/>
+            <Button Grid.Column="5"
+                    Text="Dismiss"
+                    Command="{Binding DismissDetectionCommand}"
+                    BackgroundColor="{StaticResource SurfaceDark}"
+                    TextColor="White"/>
+        </Grid>
+
+        <preview:PreviewPanel Grid.Column="2"
+                              WidthRequest="420"
+                              BindingContext="{Binding Preview}"
+                              IsVisible="{Binding IsPanelOpen}"/>
+    </Grid>
+</ContentPage>

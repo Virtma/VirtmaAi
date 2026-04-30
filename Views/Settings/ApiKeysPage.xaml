@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Settings"
+             xmlns:ent="clr-namespace:VirtmaAi.Models.Entities"
+             x:Class="VirtmaAi.Views.Settings.ApiKeysPage"
+             x:DataType="vm:ApiKeysViewModel"
+             Title="API Keys"
+             BackgroundColor="{StaticResource SurfaceDark}">
+    <Grid Padding="24" RowDefinitions="Auto,Auto,*" RowSpacing="16">
+        <Label Grid.Row="0"
+               Text="API keys"
+               FontSize="24"
+               FontAttributes="Bold"
+               TextColor="White"/>
+
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*,*,120,Auto"
+              ColumnSpacing="8">
+            <Entry Grid.Column="0"
+                   Text="{Binding NewServiceName, Mode=TwoWay}"
+                   Placeholder="Service (e.g. anthropic)"
+                   TextColor="White"
+                   BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                   PlaceholderColor="{StaticResource Gray500}"/>
+            <Entry Grid.Column="1"
+                   Text="{Binding NewKeyName, Mode=TwoWay}"
+                   Placeholder="Key name"
+                   TextColor="White"
+                   BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                   PlaceholderColor="{StaticResource Gray500}"/>
+            <Entry Grid.Column="2"
+                   Text="{Binding NewValue, Mode=TwoWay}"
+                   IsPassword="True"
+                   Placeholder="Secret value"
+                   TextColor="White"
+                   BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                   PlaceholderColor="{StaticResource Gray500}"/>
+            <Picker Grid.Column="3"
+                    SelectedIndex="0"
+                    TextColor="White"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>Dev</x:String>
+                        <x:String>Prod</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+            <Button Grid.Column="4"
+                    Text="Add"
+                    Command="{Binding AddCommand}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"/>
+        </Grid>
+
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Keys}">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="ent:ApiKey">
+                    <Grid Padding="12" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                        <VerticalStackLayout Grid.Column="0">
+                            <Label TextColor="White">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding ServiceName}" FontAttributes="Bold"/>
+                                        <Span Text=" · "/>
+                                        <Span Text="{Binding KeyName}"/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                            <Label Text="{Binding Category}" FontSize="11" TextColor="{StaticResource Gray400}"/>
+                        </VerticalStackLayout>
+                        <Button Grid.Column="2"
+                                Text="Remove"
+                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ApiKeysViewModel}}, Path=RemoveCommand}"
+                                CommandParameter="{Binding .}"
+                                BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                                TextColor="White"/>
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

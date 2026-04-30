@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="VirtmaAi.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:chat="clr-namespace:VirtmaAi.Views.Chat"
+    xmlns:models="clr-namespace:VirtmaAi.Views.Models"
+    xmlns:settings="clr-namespace:VirtmaAi.Views.Settings"
+    xmlns:skills="clr-namespace:VirtmaAi.Views.Skills"
+    xmlns:plugins="clr-namespace:VirtmaAi.Views.Plugins"
+    xmlns:graphify="clr-namespace:VirtmaAi.Views.Graphify"
+    xmlns:routines="clr-namespace:VirtmaAi.Views.Routines"
+    xmlns:database="clr-namespace:VirtmaAi.Views.Database"
+    xmlns:integrations="clr-namespace:VirtmaAi.Views.Integrations"
+    xmlns:training="clr-namespace:VirtmaAi.Views.Training"
+    xmlns:help="clr-namespace:VirtmaAi.Views.Help"
+    Title="VirtmaAi"
+    FlyoutBehavior="Flyout">
+
+    <ShellContent
+        Title="Chat"
+        ContentTemplate="{DataTemplate chat:ChatPage}"
+        Route="ChatPage" />
+
+    <ShellContent
+        Title="Models"
+        ContentTemplate="{DataTemplate models:ModelLibraryPage}"
+        Route="ModelsPage" />
+
+    <ShellContent
+        Title="API Keys"
+        ContentTemplate="{DataTemplate settings:ApiKeysPage}"
+        Route="ApiKeysPage" />
+
+    <ShellContent
+        Title="Network"
+        ContentTemplate="{DataTemplate settings:NetworkPage}"
+        Route="NetworkPage" />
+
+    <ShellContent
+        Title="Themes"
+        ContentTemplate="{DataTemplate settings:ThemesPage}"
+        Route="ThemesPage" />
+
+    <ShellContent
+        Title="AI Rules"
+        ContentTemplate="{DataTemplate settings:AiRulesPage}"
+        Route="AiRulesPage" />
+
+    <ShellContent
+        Title="Skills"
+        ContentTemplate="{DataTemplate skills:SkillsListPage}"
+        Route="SkillsPage" />
+
+    <ShellContent
+        Title="Plugins"
+        ContentTemplate="{DataTemplate plugins:PluginsListPage}"
+        Route="PluginsPage" />
+
+    <ShellContent
+        Title="Graphify"
+        ContentTemplate="{DataTemplate graphify:GraphViewerPage}"
+        Route="GraphifyPage" />
+
+    <ShellContent
+        Title="Conversation Graph"
+        ContentTemplate="{DataTemplate graphify:ConversationGraphPage}"
+        Route="ConversationGraphPage" />
+
+    <ShellContent
+        Title="Routines"
+        ContentTemplate="{DataTemplate routines:RoutinesPage}"
+        Route="RoutinesPage" />
+
+    <ShellContent
+        Title="Database"
+        ContentTemplate="{DataTemplate database:DbManagerPage}"
+        Route="DatabasePage" />
+
+    <ShellContent
+        Title="Integrations"
+        ContentTemplate="{DataTemplate integrations:IntegrationsPage}"
+        Route="IntegrationsPage" />
+
+    <ShellContent
+        Title="References"
+        ContentTemplate="{DataTemplate settings:ReferencesPage}"
+        Route="ReferencesPage" />
+
+    <ShellContent
+        Title="External API"
+        ContentTemplate="{DataTemplate settings:ExternalApiKeysPage}"
+        Route="ExternalApiKeysPage" />
+
+    <ShellContent
+        Title="Train"
+        ContentTemplate="{DataTemplate training:ModelCreatorPage}"
+        Route="ModelCreatorPage" />
+
+    <ShellContent
+        Title="Resource Monitor"
+        ContentTemplate="{DataTemplate settings:ResourceMonitorPage}"
+        Route="ResourceMonitorPage" />
+
+    <ShellContent
+        Title="Errors &amp; Warnings"
+        ContentTemplate="{DataTemplate settings:LogsPage}"
+        Route="LogsPage" />
+
+    <ShellContent
+        Title="Help"
+        ContentTemplate="{DataTemplate help:HelpPage}"
+        Route="HelpPage" />
+
+</Shell>

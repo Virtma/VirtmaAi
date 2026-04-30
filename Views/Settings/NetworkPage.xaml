@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Settings"
+             xmlns:sys="clr-namespace:VirtmaAi.Services.System"
+             x:Class="VirtmaAi.Views.Settings.NetworkPage"
+             x:DataType="vm:NetworkViewModel"
+             Title="Network"
+             BackgroundColor="{StaticResource SurfaceDark}">
+    <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="16">
+        <VerticalStackLayout Grid.Row="0" Spacing="4">
+            <Label Text="Network"
+                   FontSize="24"
+                   FontAttributes="Bold"
+                   TextColor="White"/>
+            <Label TextColor="{StaticResource Gray400}">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="Public IP: "/>
+                        <Span Text="{Binding PublicIp, FallbackValue='unknown'}"/>
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+        </VerticalStackLayout>
+
+        <Border Grid.Row="1"
+                BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                Stroke="{StaticResource Accent}"
+                StrokeThickness="1"
+                Padding="14,10"
+                IsVisible="{Binding HasActiveInterface}">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="6"/>
+            </Border.StrokeShape>
+            <HorizontalStackLayout Spacing="10">
+                <Label Text="&#x2713;"
+                       TextColor="{StaticResource Accent}"
+                       FontSize="16"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+                <Label Text="{Binding ActiveBannerText}"
+                       TextColor="White"
+                       FontSize="13"
+                       FontAttributes="Bold"
+                       VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+        </Border>
+
+        <HorizontalStackLayout Grid.Row="2" Spacing="8">
+            <Button Text="Refresh"
+                    Command="{Binding RefreshCommand}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"/>
+            <Label Text="(Pick an interface, then click Save preference)"
+                   TextColor="{StaticResource Gray400}"
+                   FontSize="11"
+                   VerticalOptions="Center"/>
+        </HorizontalStackLayout>
+
+        <CollectionView Grid.Row="3"
+                        ItemsSource="{Binding Interfaces}"
+                        SelectedItem="{Binding Selected, Mode=TwoWay}"
+                        SelectionMode="Single">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="sys:NetworkInterfaceInfo">
+                    <VerticalStackLayout Padding="12,8">
+                        <Label Text="{Binding Name}" TextColor="White" FontAttributes="Bold"/>
+                        <Label Text="{Binding Description}" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                        <Label Text="{Binding InterfaceType}" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Button Grid.Row="4"
+                Text="Save preference"
+                Command="{Binding SaveCommand}"
+                BackgroundColor="{StaticResource Accent}"
+                TextColor="White"
+                HorizontalOptions="End"/>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Settings"
+             xmlns:entities="clr-namespace:VirtmaAi.Models.Entities"
+             x:Class="VirtmaAi.Views.Settings.ExternalApiKeysPage"
+             x:DataType="vm:ExternalApiKeysViewModel"
+             Title="External API"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+            <Label Text="External API" FontSize="22" FontAttributes="Bold" TextColor="White"/>
+            <Label Text="Let external programs drive VirtmaAi via HTTP on localhost." TextColor="{StaticResource Gray400}" FontSize="12"/>
+
+            <Border BackgroundColor="{StaticResource SurfaceDarkAlt}" Stroke="{StaticResource Gray600}" Padding="12" StrokeShape="RoundRectangle 6">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Server" FontSize="16" FontAttributes="Bold" TextColor="White"/>
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="Port" TextColor="{StaticResource Gray300}" VerticalOptions="Center"/>
+                        <Entry Text="{Binding HostPort, Mode=TwoWay}" TextColor="White" Keyboard="Numeric" WidthRequest="100"/>
+                        <Button Text="Start" Command="{Binding StartHostCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White" IsVisible="{Binding HostRunning, Converter={StaticResource InverseBoolConverter}}"/>
+                        <Button Text="Stop" Command="{Binding StopHostCommand}" BackgroundColor="{StaticResource AccentInteractive}" TextColor="White" IsVisible="{Binding HostRunning}"/>
+                    </HorizontalStackLayout>
+                    <Label Text="{Binding HostStatus}" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="{StaticResource SurfaceDarkAlt}" Stroke="{StaticResource Gray600}" Padding="12" StrokeShape="RoundRectangle 6">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Issue a new key" FontSize="16" FontAttributes="Bold" TextColor="White"/>
+                    <Label Text="Program name" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding NewProgramName, Mode=TwoWay}" TextColor="White" Placeholder="e.g. my-script.ps1"/>
+                    <Label Text="Scopes (comma-separated)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding NewScopes, Mode=TwoWay}" TextColor="White"/>
+                    <Button Text="Issue key" Command="{Binding IssueCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White" HorizontalOptions="Start"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="{StaticResource AccentPressed}" Stroke="{StaticResource Accent}" Padding="12" StrokeShape="RoundRectangle 6"
+                    IsVisible="{Binding LastIssuedKey, Converter={StaticResource IsNotNullOrEmptyConverter}}">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Key issued — this is shown only once. Copy it now." FontAttributes="Bold" TextColor="White"/>
+                    <Editor Text="{Binding LastIssuedKey, Mode=OneWay}" IsReadOnly="True" HeightRequest="60" BackgroundColor="{StaticResource SurfaceDarkAlt}" TextColor="White"/>
+                    <Button Text="I've saved it" Command="{Binding DismissLastKeyCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White" HorizontalOptions="Start"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="{StaticResource SurfaceDarkAlt}" Stroke="{StaticResource Gray600}" Padding="12" StrokeShape="RoundRectangle 6">
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Issued keys" FontSize="16" FontAttributes="Bold" TextColor="White"/>
+                    <CollectionView ItemsSource="{Binding Keys}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="entities:ExternalApiKey">
+                                <Grid Padding="0,8" ColumnDefinitions="*,Auto">
+                                    <VerticalStackLayout Grid.Column="0">
+                                        <Label Text="{Binding ProgramName}" TextColor="White"/>
+                                        <Label Text="{Binding Scopes}" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                                        <Label Text="{Binding LastUsedAt, StringFormat='last used: {0}'}" TextColor="{StaticResource Gray500}" FontSize="10"/>
+                                    </VerticalStackLayout>
+                                    <Button Grid.Column="1" Text="Revoke"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ExternalApiKeysViewModel}}, Path=RevokeCommand}"
+                                            CommandParameter="{Binding .}"
+                                            BackgroundColor="{StaticResource AccentInteractive}" TextColor="White"/>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource AccentInteractive}" IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Graphify"
+             x:Class="VirtmaAi.Views.Graphify.ConversationGraphPage"
+             x:DataType="vm:ConversationGraphViewModel"
+             Title="Conversation Graph"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid ColumnDefinitions="320,*" Padding="0">
+
+        <!-- Sidebar: conversation picker + summary -->
+        <Grid Grid.Column="0"
+              BackgroundColor="{StaticResource SurfaceDarkAlt}"
+              RowDefinitions="Auto,Auto,Auto,*">
+            <VerticalStackLayout Grid.Row="0" Padding="14" Spacing="4">
+                <Label Text="Conversation Graph"
+                       FontSize="18"
+                       FontAttributes="Bold"
+                       TextColor="White"/>
+                <Label Text="Each message is a node. Sequential and parent-child links are solid; topical similarity is shown with a dashed line."
+                       FontSize="11"
+                       TextColor="{StaticResource Gray400}"
+                       LineBreakMode="WordWrap"/>
+            </VerticalStackLayout>
+
+            <Button Grid.Row="1"
+                    Text="Refresh"
+                    Margin="14,0"
+                    Command="{Binding RefreshCommand}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"/>
+
+            <Label Grid.Row="2"
+                   Text="{Binding Summary}"
+                   Padding="14,8"
+                   TextColor="{StaticResource Gray300}"
+                   FontSize="11"
+                   LineBreakMode="WordWrap"/>
+
+            <CollectionView Grid.Row="3"
+                            ItemsSource="{Binding Conversations}"
+                            SelectedItem="{Binding Selected, Mode=TwoWay}"
+                            SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ConversationGraphItem">
+                        <VerticalStackLayout Padding="14,8">
+                            <Label Text="{Binding Title}"
+                                   TextColor="White"
+                                   FontSize="13"
+                                   LineBreakMode="TailTruncation"/>
+                            <Label Text="{Binding Display}"
+                                   TextColor="{StaticResource Gray400}"
+                                   FontSize="10"
+                                   LineBreakMode="TailTruncation"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                <CollectionView.EmptyView>
+                    <Label Padding="14"
+                           Text="No conversations yet."
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="12"/>
+                </CollectionView.EmptyView>
+            </CollectionView>
+        </Grid>
+
+        <!-- Main: WebView with vis-network -->
+        <WebView Grid.Column="1"
+                 x:Name="GraphWebView"
+                 Source="conversation-graph.html"/>
+    </Grid>
+</ContentPage>

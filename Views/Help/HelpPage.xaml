@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="VirtmaAi.Views.Help.HelpPage"
+             Title="Help"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="14" MaximumWidthRequest="900">
+            <Label Text="VirtmaAi — quick reference" FontSize="22" FontAttributes="Bold" TextColor="White"/>
+            <Label Text="A privacy-first local AI workspace. Everything below works offline once your models are downloaded." TextColor="{StaticResource Gray400}"/>
+
+            <BoxView HeightRequest="1" Color="{StaticResource Gray600}" Margin="0,6"/>
+
+            <Label Text="Workspace" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Accent}"/>
+            <Label TextColor="{StaticResource Gray200}">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="• Chat "/><Span Text="— Talk to local (Ollama) or cloud (Claude / OpenAI) models.&#10;" TextColor="{StaticResource Gray400}"/>
+                        <Span Text="• Models "/><Span Text="— Download and manage local models; enforce hardware checks.&#10;" TextColor="{StaticResource Gray400}"/>
+                        <Span Text="• Train "/><Span Text="— Build tiny custom ML models (classifiers / regressors) and export ONNX or register with Ollama.&#10;" TextColor="{StaticResource Gray400}"/>
+                        <Span Text="• Skills "/><Span Text="— Reusable instruction packs that auto-inject on matching triggers.&#10;" TextColor="{StaticResource Gray400}"/>
+                        <Span Text="• Plugins "/><Span Text="— Callable tools (Desktop Commander, HTTP, media generators).&#10;" TextColor="{StaticResource Gray400}"/>
+                        <Span Text="• Routines "/><Span Text="— Scheduled AI tasks (cron-style).&#10;" TextColor="{StaticResource Gray400}"/>
+                        <Span Text="• References "/><Span Text="— Durable facts the AI can recall.&#10;" TextColor="{StaticResource Gray400}"/>
+                        <Span Text="• Graphify "/><Span Text="— Knowledge-graph indexing for token reduction (desktop only).&#10;" TextColor="{StaticResource Gray400}"/>
+                        <Span Text="• External API "/><Span Text="— Let other programs drive VirtmaAi over HTTP." TextColor="{StaticResource Gray400}"/>
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+
+            <Label Text="Keyboard shortcuts" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Accent}" Margin="0,10,0,0"/>
+            <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="4" ColumnSpacing="12">
+                <Label Grid.Row="0" Grid.Column="0" Text="Ctrl+Enter" TextColor="White" FontFamily="OpenSansRegular"/>
+                <Label Grid.Row="0" Grid.Column="1" Text="Send current message" TextColor="{StaticResource Gray300}"/>
+                <Label Grid.Row="1" Grid.Column="0" Text="Esc" TextColor="White" FontFamily="OpenSansRegular"/>
+                <Label Grid.Row="1" Grid.Column="1" Text="Stop streaming response" TextColor="{StaticResource Gray300}"/>
+                <Label Grid.Row="2" Grid.Column="0" Text="Ctrl+N" TextColor="White" FontFamily="OpenSansRegular"/>
+                <Label Grid.Row="2" Grid.Column="1" Text="New conversation" TextColor="{StaticResource Gray300}"/>
+                <Label Grid.Row="3" Grid.Column="0" Text="Ctrl+P" TextColor="White" FontFamily="OpenSansRegular"/>
+                <Label Grid.Row="3" Grid.Column="1" Text="Toggle preview panel" TextColor="{StaticResource Gray300}"/>
+                <Label Grid.Row="4" Grid.Column="0" Text="Ctrl+K" TextColor="White" FontFamily="OpenSansRegular"/>
+                <Label Grid.Row="4" Grid.Column="1" Text="Focus conversation search" TextColor="{StaticResource Gray300}"/>
+                <Label Grid.Row="5" Grid.Column="0" Text="Ctrl+," TextColor="White" FontFamily="OpenSansRegular"/>
+                <Label Grid.Row="5" Grid.Column="1" Text="Open settings" TextColor="{StaticResource Gray300}"/>
+            </Grid>
+
+            <Label Text="CLI" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Accent}" Margin="0,10,0,0"/>
+            <Label TextColor="{StaticResource Gray300}" FontFamily="OpenSansRegular" FontSize="12">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="VirtmaAi.exe --prompt &quot;summarize this&quot; --model llama3 --provider ollama&#10;"/>
+                        <Span Text="VirtmaAi.exe --prompt &quot;write a haiku&quot; --provider anthropic"/>
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+
+            <Label Text="External HTTP API" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Accent}" Margin="0,10,0,0"/>
+            <Label TextColor="{StaticResource Gray300}" FontFamily="OpenSansRegular" FontSize="12">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="GET  /v1/ping&#10;"/>
+                        <Span Text="POST /v1/chat           (SSE stream)&#10;"/>
+                        <Span Text="POST /v1/conversations&#10;"/>
+                        <Span Text="POST /v1/skills/{name}/invoke&#10;"/>
+                        <Span Text="POST /v1/plugins/{name}/invoke&#10;"/>
+                        <Span Text="POST /v1/routines"/>
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+
+            <Label Text="Crash reports" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Accent}" Margin="0,10,0,0"/>
+            <Label Text="Unhandled exceptions are written to &lt;data-dir&gt;/crashes/ with a timestamp. Logs are under &lt;data-dir&gt;/logs/ with a 14-day rolling retention."
+                   TextColor="{StaticResource Gray300}"/>
+
+            <Label Text="More info" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Accent}" Margin="0,10,0,0"/>
+            <Label Text="Configure providers under API Keys, choose your network interface under Network, and manage themes from the Themes page. All data stays on this device unless you explicitly call out to a cloud provider."
+                   TextColor="{StaticResource Gray300}"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Settings"
+             xmlns:notif="clr-namespace:VirtmaAi.Services.Notifications"
+             x:Class="VirtmaAi.Views.Settings.LogsPage"
+             x:DataType="vm:LogsViewModel"
+             Title="Errors &amp; Warnings"
+             BackgroundColor="{StaticResource SurfaceDark}">
+    <Grid Padding="20" RowDefinitions="Auto,Auto,*" RowSpacing="12">
+        <VerticalStackLayout Grid.Row="0" Spacing="2">
+            <Label Text="Errors &amp; Warnings"
+                   FontSize="22"
+                   FontAttributes="Bold"
+                   TextColor="White"/>
+            <Label Text="Runtime log of warnings and errors. Cleared on app restart."
+                   FontSize="11"
+                   TextColor="{StaticResource Gray400}"/>
+        </VerticalStackLayout>
+
+        <HorizontalStackLayout Grid.Row="1" Spacing="8">
+            <Button Text="Clear"
+                    Command="{Binding ClearCommand}"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    TextColor="White"
+                    FontSize="11"
+                    HeightRequest="32"/>
+        </HorizontalStackLayout>
+
+        <Border Grid.Row="2"
+                BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                Stroke="{StaticResource Gray600}"
+                StrokeThickness="1"
+                Padding="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="6"/>
+            </Border.StrokeShape>
+            <CollectionView ItemsSource="{Binding Entries}">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Padding="24">
+                        <Label Text="No log entries yet"
+                               TextColor="{StaticResource Gray400}"
+                               FontSize="13"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="notif:LogEntry">
+                        <Grid Padding="12,8" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="10">
+                            <Label Grid.Column="0"
+                                   Text="{Binding Kind}"
+                                   TextColor="{Binding Kind, Converter={StaticResource LogKindToColorConverter}}"
+                                   FontSize="10"
+                                   FontAttributes="Bold"
+                                   VerticalOptions="Start"/>
+                            <Label Grid.Column="1"
+                                   Text="{Binding TimestampUtc, StringFormat='{0:HH:mm:ss}'}"
+                                   TextColor="{StaticResource Gray500}"
+                                   FontSize="10"
+                                   VerticalOptions="Start"/>
+                            <VerticalStackLayout Grid.Column="2">
+                                <Label Text="{Binding Message}" TextColor="White" FontSize="12"/>
+                                <Label Text="{Binding Detail}"
+                                       TextColor="{StaticResource Gray400}"
+                                       FontSize="10"
+                                       LineBreakMode="WordWrap"
+                                       IsVisible="{Binding Detail, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
+    </Grid>
+</ContentPage>

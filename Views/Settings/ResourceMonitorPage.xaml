@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Settings"
+             xmlns:local="clr-namespace:VirtmaAi.Views.Settings"
+             x:Class="VirtmaAi.Views.Settings.ResourceMonitorPage"
+             x:DataType="vm:ResourceMonitorViewModel"
+             Title="Resource Monitor"
+             BackgroundColor="{StaticResource SurfaceDark}">
+    <ContentPage.Resources>
+        <local:ResourceSparklineDrawable x:Key="CpuDrawable"/>
+        <local:ResourceSparklineDrawable x:Key="MemDrawable"/>
+    </ContentPage.Resources>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Resource monitor"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="White"/>
+                <Label Text="{Binding HardwareSummary}"
+                       FontSize="11"
+                       TextColor="{StaticResource Gray400}"/>
+            </VerticalStackLayout>
+
+            <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="12">
+                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                    <Label Text="Sampling interval (seconds)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Slider Minimum="0.5" Maximum="10" Value="{Binding IntervalSeconds, Mode=TwoWay}"/>
+                    <Label Text="{Binding IntervalSeconds, StringFormat='{0:0.0} s'}"
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="11"/>
+                </VerticalStackLayout>
+                <Label Grid.Column="1"
+                       Text="{Binding IsRunning, StringFormat='Running: {0}'}"
+                       TextColor="{StaticResource Gray400}"
+                       FontSize="11"
+                       VerticalOptions="Center"/>
+                <Button Grid.Column="2"
+                        Text="Clear history"
+                        Command="{Binding ClearCommand}"
+                        BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                        TextColor="White"
+                        FontSize="11"
+                        HeightRequest="32"
+                        VerticalOptions="Center"/>
+            </Grid>
+
+            <Border BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Stroke="{StaticResource Gray600}"
+                    StrokeThickness="1"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="6"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0"
+                               Text="App CPU"
+                               TextColor="White"
+                               FontAttributes="Bold"
+                               FontSize="14"/>
+                        <Label Grid.Column="1"
+                               Text="{Binding CpuLabel}"
+                               TextColor="{StaticResource Accent}"
+                               FontSize="14"
+                               FontAttributes="Bold"/>
+                    </Grid>
+                    <GraphicsView x:Name="CpuChart"
+                                  HeightRequest="100"
+                                  Drawable="{StaticResource CpuDrawable}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Stroke="{StaticResource Gray600}"
+                    StrokeThickness="1"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="6"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Grid.Column="0"
+                               Text="App memory"
+                               TextColor="White"
+                               FontAttributes="Bold"
+                               FontSize="14"/>
+                        <Label Grid.Column="1"
+                               Text="{Binding WorkingSetLabel}"
+                               TextColor="{StaticResource Accent}"
+                               FontSize="14"
+                               FontAttributes="Bold"/>
+                    </Grid>
+                    <Label TextColor="{StaticResource Gray400}" FontSize="11">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="Managed heap: "/>
+                                <Span Text="{Binding ManagedHeapLabel}"/>
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <GraphicsView x:Name="MemChart"
+                                  HeightRequest="100"
+                                  Drawable="{StaticResource MemDrawable}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Stroke="{StaticResource Gray600}"
+                    StrokeThickness="1"
+                    Padding="14"
+                    IsVisible="{Binding Gpus.Count, Converter={StaticResource IsGreaterThanZeroConverter}}">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="6"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="GPU"
+                           TextColor="White"
+                           FontAttributes="Bold"
+                           FontSize="14"/>
+                    <CollectionView ItemsSource="{Binding Gpus}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GpuRow">
+                                <VerticalStackLayout Padding="0,4" Spacing="4">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <Label Grid.Column="0"
+                                               Text="{Binding Name}"
+                                               TextColor="{StaticResource Gray300}"
+                                               FontSize="11"
+                                               LineBreakMode="TailTruncation"/>
+                                        <Label Grid.Column="1"
+                                               Text="{Binding UsageLabel}"
+                                               TextColor="{StaticResource Accent}"
+                                               FontSize="13"
+                                               FontAttributes="Bold"/>
+                                    </Grid>
+                                    <ProgressBar Progress="{Binding UsagePercent, Converter={StaticResource PercentToProgressConverter}}"
+                                                 ProgressColor="{StaticResource Accent}"
+                                                 HeightRequest="4"/>
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <Label Grid.Column="0"
+                                               Text="VRAM"
+                                               TextColor="{StaticResource Gray400}"
+                                               FontSize="10"/>
+                                        <ProgressBar Grid.Column="1"
+                                                     Margin="8,0"
+                                                     Progress="{Binding MemoryFraction}"
+                                                     ProgressColor="{StaticResource AccentInteractive}"
+                                                     HeightRequest="3"
+                                                     VerticalOptions="Center"/>
+                                        <Label Grid.Column="2"
+                                               Text="{Binding MemoryLabel}"
+                                               TextColor="White"
+                                               FontSize="11"/>
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Stroke="{StaticResource Gray600}"
+                    StrokeThickness="1"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="6"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="System memory"
+                           TextColor="White"
+                           FontAttributes="Bold"
+                           FontSize="14"/>
+                    <ProgressBar Progress="{Binding SystemMemoryUsedPercent, Converter={StaticResource PercentToProgressConverter}}"
+                                 HeightRequest="6"
+                                 ProgressColor="{StaticResource Accent}"/>
+                    <Grid ColumnDefinitions="*,*,*">
+                        <VerticalStackLayout Grid.Column="0">
+                            <Label Text="Used" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                            <Label Text="{Binding SystemUsedLabel}" TextColor="White" FontSize="13"/>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1">
+                            <Label Text="Available" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                            <Label Text="{Binding SystemAvailableLabel}" TextColor="White" FontSize="13"/>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="2">
+                            <Label Text="Total" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                            <Label Text="{Binding SystemTotalLabel}" TextColor="White" FontSize="13"/>
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

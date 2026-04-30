@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Graphify"
+             xmlns:entities="clr-namespace:VirtmaAi.Models.Entities"
+             x:Class="VirtmaAi.Views.Graphify.GraphViewerPage"
+             x:DataType="vm:GraphifyViewModel"
+             Title="Graphify"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid ColumnDefinitions="320,*" Padding="0">
+        <Grid Grid.Column="0" BackgroundColor="{StaticResource SurfaceDarkAlt}" RowDefinitions="Auto,Auto,Auto,*,Auto">
+            <VerticalStackLayout Grid.Row="0" Padding="12" Spacing="6">
+                <Label Text="Graphify" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                <Label Text="{Binding Status}" TextColor="{StaticResource Gray300}" FontSize="11"/>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Grid.Row="1" Padding="12,6" Spacing="6">
+                <Label Text="Conversation" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Picker ItemsSource="{Binding Conversations}"
+                        ItemDisplayBinding="{Binding Display}"
+                        SelectedItem="{Binding SelectedConversation, Mode=TwoWay}"
+                        TextColor="White"
+                        TitleColor="{StaticResource Gray400}"
+                        Title="Pick a conversation"/>
+                <Label Text="Project directory" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Entry Text="{Binding ProjectDir, Mode=TwoWay}" TextColor="White" Placeholder="auto-filled from conversation"/>
+                <Button Text="Generate graph" Command="{Binding GenerateCommand}" IsEnabled="{Binding IsDesktop}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                <Label Text="{Binding ProgressStage}" TextColor="{StaticResource Gray400}" FontSize="11" IsVisible="{Binding ProgressStage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+            </VerticalStackLayout>
+
+            <Label Grid.Row="2" Padding="12,10,12,4" Text="Graphs" TextColor="{StaticResource Gray400}" FontSize="11"/>
+
+            <CollectionView Grid.Row="3"
+                            ItemsSource="{Binding Graphs}"
+                            SelectedItem="{Binding Selected, Mode=TwoWay}"
+                            SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="entities:GraphifyGraph">
+                        <VerticalStackLayout Padding="12,8">
+                            <Label Text="{Binding ProjectDir}" TextColor="White" LineBreakMode="TailTruncation"/>
+                            <Label Text="{Binding CreatedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}" TextColor="{StaticResource Gray400}" FontSize="11"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Button Grid.Row="4" Text="Delete selected" Command="{Binding DeleteCommand}" BackgroundColor="{StaticResource AccentInteractive}" TextColor="White" Margin="12"/>
+        </Grid>
+
+        <Grid Grid.Column="1" RowDefinitions="*,200">
+            <WebView x:Name="GraphWebView" Grid.Row="0" Source="graphify-viewer.html" HeightRequest="600"/>
+            <ScrollView Grid.Row="1" BackgroundColor="{StaticResource SurfaceDarkAlt}" Padding="12">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Report" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Editor Text="{Binding ReportMarkdown, Mode=OneWay}" IsReadOnly="True" HeightRequest="160" BackgroundColor="{StaticResource SurfaceDark}" TextColor="White"/>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+    </Grid>
+</ContentPage>

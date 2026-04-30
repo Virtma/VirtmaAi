@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:notif="clr-namespace:VirtmaAi.Services.Notifications"
+             x:Class="VirtmaAi.Views.Notifications.ToastHostView"
+             x:Name="Root"
+             InputTransparent="True"
+             CascadeInputTransparent="False"
+             HorizontalOptions="End"
+             VerticalOptions="Start"
+             Margin="0,16,16,0">
+
+    <CollectionView ItemsSource="{Binding Source={x:Reference Root}, Path=Toasts}"
+                    InputTransparent="False"
+                    HorizontalOptions="End"
+                    VerticalOptions="Start">
+        <CollectionView.ItemsLayout>
+            <LinearItemsLayout Orientation="Vertical" ItemSpacing="8"/>
+        </CollectionView.ItemsLayout>
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="notif:ToastNotification">
+                <Border BackgroundColor="{Binding BackgroundColor}"
+                        StrokeThickness="0"
+                        Padding="14,10"
+                        MinimumWidthRequest="220"
+                        MaximumWidthRequest="420"
+                        HorizontalOptions="End">
+                    <Border.StrokeShape>
+                        <RoundRectangle CornerRadius="8"/>
+                    </Border.StrokeShape>
+                    <Border.Shadow>
+                        <Shadow Brush="Black" Opacity="0.35" Radius="12" Offset="0,4"/>
+                    </Border.Shadow>
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                        <Label Grid.Column="0"
+                               Text="{Binding Icon}"
+                               TextColor="White"
+                               FontSize="16"
+                               FontAttributes="Bold"
+                               VerticalOptions="Center"/>
+                        <Label Grid.Column="1"
+                               Text="{Binding Message}"
+                               TextColor="White"
+                               FontSize="13"
+                               LineBreakMode="WordWrap"
+                               VerticalOptions="Center"/>
+                        <Button Grid.Column="2"
+                                Text="⧉"
+                                FontSize="13"
+                                WidthRequest="28"
+                                HeightRequest="28"
+                                Padding="0"
+                                BackgroundColor="Transparent"
+                                BorderColor="Transparent"
+                                BorderWidth="0"
+                                TextColor="White"
+                                Command="{Binding CopyCommand}"
+                                ToolTipProperties.Text="Copy message"
+                                VerticalOptions="Center"/>
+                        <Button Grid.Column="3"
+                                Text="✕"
+                                FontSize="11"
+                                WidthRequest="28"
+                                HeightRequest="28"
+                                Padding="0"
+                                BackgroundColor="Transparent"
+                                BorderColor="Transparent"
+                                BorderWidth="0"
+                                TextColor="White"
+                                Command="{Binding DismissCommand}"
+                                ToolTipProperties.Text="Dismiss"
+                                VerticalOptions="Center"/>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+    </CollectionView>
+</ContentView>

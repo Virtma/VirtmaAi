@@ -1,0 +1,235 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Conversation Graph</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #0a0a0a; color: #fff; height: 100%; font-family: system-ui, sans-serif; overflow: hidden; }
+    #net { width: 100%; height: 100vh; }
+
+    /* ── top-left HUD ── */
+    #hud {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(20,20,20,0.85); padding: 8px 12px;
+      border: 1px solid #333; border-radius: 6px;
+      font-size: 12px; pointer-events: none;
+      max-width: 320px;
+    }
+
+    /* ── orbit toggle button ── */
+    #orbitBtn {
+      position: absolute; top: 12px; right: 12px;
+      background: rgba(20,20,20,0.85); padding: 6px 12px;
+      border: 1px solid #444; border-radius: 6px;
+      font-size: 12px; cursor: pointer; color: #ccc;
+      z-index: 10;
+    }
+    #orbitBtn:hover { border-color: #FF3B30; color: #FF3B30; }
+    #orbitBtn.active { border-color: #FF3B30; color: #FF3B30; background: rgba(40,10,10,0.92); }
+
+    /* ── bottom-right legend ── */
+    #legend {
+      position: absolute; bottom: 12px; right: 12px;
+      background: rgba(20,20,20,0.85); padding: 10px 12px;
+      border: 1px solid #333; border-radius: 6px;
+      font-size: 11px; line-height: 1.7;
+      pointer-events: none;
+    }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+    /* ── node info panel ── */
+    #nodePanel {
+      display: none;
+      position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+      background: rgba(20,20,20,0.95); padding: 14px 16px;
+      border: 1px solid #444; border-radius: 8px;
+      font-size: 13px; max-width: 480px; min-width: 280px;
+      z-index: 20;
+    }
+    #nodePanel.visible { display: block; }
+    #nodePanelHeader {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    #nodePanelTitle { font-weight: 700; font-size: 13px; color: #fff; flex: 1; margin-right: 10px; }
+    #nodePanelClose {
+      background: none; border: none; color: #888; font-size: 16px;
+      cursor: pointer; padding: 0; line-height: 1;
+    }
+    #nodePanelClose:hover { color: #FF3B30; }
+    #nodePanelRole { font-size: 11px; color: #aaa; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+    #nodePanelBody { color: #ddd; line-height: 1.55; white-space: pre-wrap; max-height: 260px; overflow-y: auto; font-size: 12px; }
+  </style>
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+</head>
+<body>
+  <div id="hud">Pick a conversation to render its graph.</div>
+
+  <button id="orbitBtn" title="Toggle physics / orbit">&#x2B6F; Orbit off</button>
+
+  <div id="net"></div>
+
+  <!-- Node info panel -->
+  <div id="nodePanel">
+    <div id="nodePanelHeader">
+      <div id="nodePanelTitle">Node</div>
+      <button id="nodePanelClose" title="Close">&#x2715;</button>
+    </div>
+    <div id="nodePanelRole"></div>
+    <div id="nodePanelBody"></div>
+  </div>
+
+  <div id="legend">
+    <div><span class="swatch" style="background:#2563EB"></span>User message</div>
+    <div><span class="swatch" style="background:#16A34A"></span>Assistant reply</div>
+    <div><span class="swatch" style="background:#9333EA"></span>Thinking</div>
+    <div><span class="swatch" style="background:#D97706"></span>Tool / system</div>
+  </div>
+
+  <script>
+    let network  = null;
+    let lastNodes = null;
+    let lastEdges = null;
+    let nodeData  = {};   // id → full node object for the panel
+    let physicsOn = false;
+
+    const orbitBtn = document.getElementById('orbitBtn');
+    const nodePanel = document.getElementById('nodePanel');
+    document.getElementById('nodePanelClose').addEventListener('click', function () {
+      nodePanel.classList.remove('visible');
+      if (network) network.unselectAll();
+    });
+
+    orbitBtn.addEventListener('click', function () {
+      physicsOn = !physicsOn;
+      if (network) network.setOptions({ physics: { enabled: physicsOn } });
+      orbitBtn.textContent = physicsOn ? '⭯ Orbit on' : '⭯ Orbit off';
+      orbitBtn.classList.toggle('active', physicsOn);
+    });
+
+    const COLORS = {
+      user:      { bg: '#1e3a8a', border: '#2563EB', highlightBg: '#2563EB', highlightBorder: '#60A5FA' },
+      assistant: { bg: '#14532d', border: '#16A34A', highlightBg: '#16A34A', highlightBorder: '#4ADE80' },
+      thinking:  { bg: '#4c1d95', border: '#9333EA', highlightBg: '#9333EA', highlightBorder: '#C084FC' },
+      tool:      { bg: '#78350f', border: '#D97706', highlightBg: '#D97706', highlightBorder: '#FBBF24' },
+      other:     { bg: '#262626', border: '#525252', highlightBg: '#404040', highlightBorder: '#737373' }
+    };
+
+    function colorFor(role) {
+      return COLORS[(role || '').toLowerCase()] || COLORS.other;
+    }
+
+    function renderGraph(graph) {
+      try {
+        const g = typeof graph === 'string' ? JSON.parse(graph) : graph;
+        nodeData = {};
+        const ds = new vis.DataSet((g.nodes || []).map(function(n) {
+          nodeData[n.id] = n;
+          const c = colorFor(n.role);
+          return {
+            id: n.id,
+            label: n.label || '',
+            title: n.tooltip || n.label || '',
+            color: { background: c.bg, border: c.border,
+                     highlight: { background: c.highlightBg, border: c.highlightBorder } },
+            font: { color: '#fff', size: 12, face: 'system-ui' },
+            shape: 'dot',
+            size: Math.max(8, Math.min(36, (n.weight || 12)))
+          };
+        }));
+        const es = new vis.DataSet((g.edges || []).map(function(e, i) {
+          return {
+            id: i,
+            from: e.from, to: e.to,
+            arrows: e.arrow === false ? '' : 'to',
+            color: { color: e.implicit ? '#3a3a3a' : '#525252', highlight: '#FF3B30' },
+            dashes: !!e.implicit,
+            width: e.implicit ? 1 : 1.4
+          };
+        }));
+
+        if (network) network.destroy();
+        lastNodes = ds; lastEdges = es;
+        physicsOn = false;
+        orbitBtn.textContent = '⭯ Orbit off';
+        orbitBtn.classList.remove('active');
+
+        const N = ds.length;
+        const charge       = -Math.max(120, 30 + 4 * Math.sqrt(N) * 12);
+        const springLength = Math.max(220, 140 + 6 * Math.sqrt(N));
+        const damping      = N > 40 ? 0.55 : 0.4;
+
+        network = new vis.Network(document.getElementById('net'), { nodes: ds, edges: es }, {
+          physics: {
+            enabled: true,   // on during initial layout only
+            solver: 'forceAtlas2Based',
+            forceAtlas2Based: {
+              gravitationalConstant: charge,
+              centralGravity: 0.002,
+              springLength: springLength,
+              springConstant: 0.06,
+              avoidOverlap: 1.0,
+              damping: damping
+            },
+            maxVelocity: 50,
+            minVelocity: 0.1,
+            stabilization: { enabled: true, iterations: 600, fit: true }
+          },
+          interaction: { hover: true, tooltipDelay: 120, navigationButtons: true, keyboard: true, zoomView: true },
+          edges: { smooth: { type: 'continuous' } },
+          nodes: { borderWidth: 1.5, scaling: { min: 8, max: 36 } }
+        });
+
+        // ── Stop orbiting once the initial layout settles ──────────────────────
+        network.on('stabilizationIterationsDone', function () {
+          network.setOptions({ physics: { enabled: false } });
+          network.fit();
+        });
+
+        // ── Node click → show info panel ──────────────────────────────────────
+        network.on('click', function (params) {
+          if (!params.nodes || params.nodes.length !== 1) {
+            nodePanel.classList.remove('visible');
+            return;
+          }
+          var id = params.nodes[0];
+          var n  = nodeData[id];
+          if (!n) return;
+
+          document.getElementById('nodePanelTitle').textContent = n.label || ('Node ' + id);
+          document.getElementById('nodePanelRole').textContent  = (n.role || '').toUpperCase();
+          document.getElementById('nodePanelBody').textContent  = n.tooltip || n.content || n.label || '';
+          nodePanel.classList.add('visible');
+
+          // Also notify the native host if available.
+          try {
+            if (window.chrome && window.chrome.webview && window.chrome.webview.postMessage)
+              window.chrome.webview.postMessage(JSON.stringify({ type: 'node-click', id: id }));
+          } catch (_) { }
+        });
+
+        document.getElementById('hud').textContent =
+          ds.length + ' nodes · ' + es.length + ' edges · ' + (g.title || 'conversation');
+      } catch (e) {
+        document.getElementById('hud').textContent = 'Render error: ' + (e && e.message ? e.message : e);
+      }
+    }
+
+    window.loadGraph    = function (graphJson) { renderGraph(graphJson); };
+    window.loadGraphB64 = function (b64) {
+      try {
+        var bytes = Uint8Array.from(atob(b64), function(c){ return c.charCodeAt(0); });
+        var json  = new TextDecoder('utf-8').decode(bytes);
+        renderGraph(json);
+      } catch (e) {
+        document.getElementById('hud').textContent = 'Decode error: ' + (e && e.message ? e.message : e);
+      }
+    };
+    window.clearGraph   = function () {
+      if (network) { network.destroy(); network = null; }
+      nodePanel.classList.remove('visible');
+      document.getElementById('hud').textContent = 'Pick a conversation to render its graph.';
+    };
+  </script>
+</body>
+</html>

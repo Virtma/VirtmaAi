@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Routines"
+             xmlns:entities="clr-namespace:VirtmaAi.Models.Entities"
+             x:Class="VirtmaAi.Views.Routines.RoutinesPage"
+             x:DataType="vm:RoutinesViewModel"
+             Title="Routines"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid ColumnDefinitions="320,*" Padding="0">
+        <Grid Grid.Column="0" BackgroundColor="{StaticResource SurfaceDarkAlt}" RowDefinitions="Auto,*">
+            <VerticalStackLayout Grid.Row="0" Padding="12" Spacing="8">
+                <Label Text="Routines" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                <Label Text="Scheduled AI tasks" TextColor="{StaticResource Gray400}" FontSize="11"/>
+                <Button Text="+ New routine" Command="{Binding NewCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+            </VerticalStackLayout>
+
+            <CollectionView Grid.Row="1"
+                            ItemsSource="{Binding All}"
+                            SelectedItem="{Binding Selected, Mode=TwoWay}"
+                            SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="entities:Routine">
+                        <VerticalStackLayout Padding="12,10">
+                            <Label Text="{Binding Name}" TextColor="White"/>
+                            <Label Text="{Binding CronExpression}" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                            <Label Text="{Binding NextRunAt, StringFormat='Next: {0:yyyy-MM-dd HH:mm}'}" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <ScrollView Grid.Column="1">
+            <VerticalStackLayout Padding="16" Spacing="8">
+                <Label Text="Name" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Entry Text="{Binding EditorName, Mode=TwoWay}" TextColor="White"/>
+
+                <Label Text="Cron expression — minute hour day month dayOfWeek" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Entry Text="{Binding EditorCron, Mode=TwoWay}" TextColor="White" Placeholder="*/5 * * * *"/>
+                <Label Text="Examples: &quot;0 8 * * *&quot; daily 8am, &quot;*/15 * * * *&quot; every 15 min, &quot;0 9 * * 1-5&quot; weekdays 9am"
+                       TextColor="{StaticResource Gray500}" FontSize="10"/>
+
+                <Label Text="Instructions — given to the AI when the routine fires" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Editor Text="{Binding EditorInstructions, Mode=TwoWay}" HeightRequest="160"
+                        TextColor="White" BackgroundColor="{StaticResource SurfaceDarkAlt}"/>
+
+                <Label Text="Response handling" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Picker ItemsSource="{Binding ResponseHandlings}"
+                        SelectedItem="{Binding EditorResponseHandling, Mode=TwoWay}"
+                        TextColor="White" BackgroundColor="{StaticResource SurfaceDarkAlt}"/>
+
+                <Label Text="Response target (file path for AppendToFile)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Entry Text="{Binding EditorResponseTarget, Mode=TwoWay}" TextColor="White"
+                       Placeholder="(leave blank for default routine log)"/>
+
+                <HorizontalStackLayout Spacing="8">
+                    <CheckBox IsChecked="{Binding EditorEnabled, Mode=TwoWay}" Color="{StaticResource Accent}"/>
+                    <Label Text="Enabled" TextColor="White" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Spacing="8">
+                    <Button Text="Save" Command="{Binding SaveCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                    <Button Text="Run now" Command="{Binding RunNowCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                    <Button Text="Delete" Command="{Binding DeleteCommand}" BackgroundColor="{StaticResource AccentInteractive}" TextColor="White"/>
+                </HorizontalStackLayout>
+
+                <BoxView HeightRequest="1" Color="{StaticResource Gray600}" Margin="0,8"/>
+
+                <Label Text="Import routine JSON (vroutine/v1)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Editor Text="{Binding ImportJson, Mode=TwoWay}" HeightRequest="80"
+                        BackgroundColor="{StaticResource SurfaceDarkAlt}" TextColor="White"/>
+                <Button Text="Import" Command="{Binding ImportCommand}" BackgroundColor="{StaticResource Accent}"
+                        TextColor="White" HorizontalOptions="Start"/>
+
+                <Label Text="Exported JSON" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Editor Text="{Binding ExportedJson, Mode=OneWay}" IsReadOnly="True" HeightRequest="120"
+                        BackgroundColor="{StaticResource SurfaceDarkAlt}" TextColor="{StaticResource Gray300}"/>
+
+                <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource AccentInteractive}"
+                       IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

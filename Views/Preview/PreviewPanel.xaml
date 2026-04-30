@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Preview"
+             xmlns:tk="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="VirtmaAi.Views.Preview.PreviewPanel"
+             x:DataType="vm:PreviewViewModel"
+             BackgroundColor="{StaticResource SurfaceDarkAlt}">
+    <Grid RowDefinitions="Auto,*" Padding="0">
+        <Grid Grid.Row="0" Padding="12,8" BackgroundColor="{StaticResource SurfaceDark}" ColumnDefinitions="*,Auto">
+            <Label Grid.Column="0"
+                   Text="{Binding Source, FallbackValue='Preview'}"
+                   TextColor="White"
+                   VerticalOptions="Center"
+                   LineBreakMode="TailTruncation"/>
+            <Button Grid.Column="1"
+                    Text="Close"
+                    Command="{Binding CloseCommand}"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    TextColor="White"/>
+        </Grid>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Padding="12" Spacing="8">
+                <Image Source="{Binding Source}"
+                       IsVisible="{Binding IsImage}"
+                       Aspect="AspectFit"/>
+
+                <tk:MediaElement Source="{Binding Source}"
+                                 IsVisible="{Binding IsVideo}"
+                                 ShouldShowPlaybackControls="True"
+                                 ShouldAutoPlay="True"
+                                 HeightRequest="320"/>
+
+                <tk:MediaElement Source="{Binding Source}"
+                                 IsVisible="{Binding IsAudio}"
+                                 ShouldShowPlaybackControls="True"
+                                 ShouldAutoPlay="True"
+                                 HeightRequest="80"/>
+
+                <WebView Source="{Binding Source}"
+                         IsVisible="{Binding IsWeb}"
+                         HeightRequest="600"/>
+
+                <Editor Text="{Binding TextContent, Mode=OneWay}"
+                        IsReadOnly="True"
+                        IsVisible="{Binding IsText}"
+                        HeightRequest="600"
+                        TextColor="White"
+                        BackgroundColor="{StaticResource SurfaceDark}"/>
+
+                <VerticalStackLayout IsVisible="{Binding IsUnsupported}" Spacing="4">
+                    <Label Text="Unsupported or external format"
+                           TextColor="{StaticResource Gray300}"/>
+                    <Label Text="{Binding Kind}"
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="11"/>
+                    <Label Text="{Binding Source}"
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="11"
+                           LineBreakMode="CharacterWrap"/>
+                </VerticalStackLayout>
+
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="{StaticResource AccentInteractive}"
+                       IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentView>

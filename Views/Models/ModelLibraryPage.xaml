@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Models"
+             xmlns:ent="clr-namespace:VirtmaAi.Models.Entities"
+             x:Class="VirtmaAi.Views.Models.ModelLibraryPage"
+             x:DataType="vm:ModelLibraryViewModel"
+             Title="Models"
+             BackgroundColor="{StaticResource SurfaceDark}">
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="14">
+            <VerticalStackLayout Spacing="4">
+                <Label Text="Model library"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       TextColor="White"/>
+                <Label Text="{Binding HardwareSummary}"
+                       FontSize="12"
+                       TextColor="{StaticResource Gray400}"/>
+            </VerticalStackLayout>
+
+            <Border BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Stroke="{StaticResource Gray600}"
+                    StrokeThickness="1"
+                    Padding="14,10">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="6"/>
+                </Border.StrokeShape>
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                    <Label Grid.Column="0"
+                           Text="&#x25CF;"
+                           FontSize="22"
+                           VerticalOptions="Center">
+                        <Label.Triggers>
+                            <DataTrigger TargetType="Label" Binding="{Binding IsOllamaReachable}" Value="True">
+                                <Setter Property="TextColor" Value="{StaticResource Accent}"/>
+                            </DataTrigger>
+                            <DataTrigger TargetType="Label" Binding="{Binding IsOllamaReachable}" Value="False">
+                                <Setter Property="TextColor" Value="{StaticResource Gray500}"/>
+                            </DataTrigger>
+                        </Label.Triggers>
+                    </Label>
+                    <Label Grid.Column="1"
+                           Text="{Binding OllamaStatus}"
+                           TextColor="White"
+                           FontSize="13"
+                           VerticalOptions="Center"
+                           LineBreakMode="WordWrap"/>
+                    <Button Grid.Column="2"
+                            Text="Refresh"
+                            Command="{Binding LoadCommand}"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="White"
+                            FontSize="12"
+                            HeightRequest="32"/>
+                </Grid>
+            </Border>
+
+            <Label Text="Available models"
+                   TextColor="{StaticResource Gray300}"
+                   FontSize="12"
+                   FontAttributes="Bold"
+                   Margin="0,4,0,0"/>
+
+            <CollectionView ItemsSource="{Binding Models}"
+                            HeightRequest="320">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="6" Padding="20">
+                        <Label Text="No models registered yet"
+                               TextColor="{StaticResource Gray400}"
+                               FontSize="13"
+                               HorizontalOptions="Center"/>
+                        <Label Text="Start Ollama or use Advanced to add an API model"
+                               TextColor="{StaticResource Gray500}"
+                               FontSize="11"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="ent:AiModel">
+                        <Grid Padding="12,8" ColumnDefinitions="64,*,Auto" ColumnSpacing="10">
+                            <Border Grid.Column="0"
+                                    StrokeThickness="0"
+                                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                                    Padding="6,3"
+                                    VerticalOptions="Center">
+                                <Border.StrokeShape>
+                                    <RoundRectangle CornerRadius="6"/>
+                                </Border.StrokeShape>
+                                <Label Text="{Binding Provider}"
+                                       TextColor="{StaticResource Accent}"
+                                       FontSize="10"
+                                       FontAttributes="Bold"
+                                       HorizontalOptions="Center"/>
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label Text="{Binding Name}" TextColor="White" FontSize="14"/>
+                                <Label Text="{Binding Endpoint, FallbackValue='remote API'}"
+                                       TextColor="{StaticResource Gray400}"
+                                       FontSize="10"/>
+                            </VerticalStackLayout>
+                            <Button Grid.Column="2"
+                                    Text="Remove"
+                                    Command="{Binding Source={RelativeSource AncestorType={x:Type vm:ModelLibraryViewModel}}, Path=RemoveCommand}"
+                                    CommandParameter="{Binding .}"
+                                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                                    TextColor="White"
+                                    FontSize="11"
+                                    HeightRequest="30"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                <Button Grid.Column="0"
+                        Text="{Binding AdvancedToggleLabel}"
+                        Command="{Binding ToggleAdvancedCommand}"
+                        BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                        TextColor="White"
+                        FontSize="12"
+                        HorizontalOptions="Start"/>
+                <Button Grid.Column="1"
+                        Text="{Binding DownloadToggleLabel}"
+                        Command="{Binding ToggleDownloadCommand}"
+                        BackgroundColor="{StaticResource Accent}"
+                        TextColor="White"
+                        FontSize="12"
+                        HorizontalOptions="End"/>
+            </Grid>
+
+            <Border IsVisible="{Binding ShowDownload}"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Stroke="{StaticResource Gray600}"
+                    StrokeThickness="1"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="6"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Download a model from a URL"
+                           TextColor="{StaticResource Gray300}"
+                           FontSize="12"
+                           FontAttributes="Bold"/>
+                    <Label Text="Paste a direct download URL (HuggingFace 'resolve' link, GGUF host, etc.). The downloaded file is registered as a local model so it persists across restarts."
+                           TextColor="{StaticResource Gray500}"
+                           FontSize="10"/>
+                    <Entry Text="{Binding DownloadUrl, Mode=TwoWay}"
+                           Placeholder="https://example.com/path/model.gguf"
+                           TextColor="White"
+                           BackgroundColor="{StaticResource SurfaceDark}"
+                           PlaceholderColor="{StaticResource Gray500}"/>
+                    <Grid ColumnDefinitions="*,140" ColumnSpacing="8">
+                        <Entry Grid.Column="0"
+                               Text="{Binding DownloadFileName, Mode=TwoWay}"
+                               Placeholder="(auto from URL)"
+                               TextColor="White"
+                               BackgroundColor="{StaticResource SurfaceDark}"
+                               PlaceholderColor="{StaticResource Gray500}"/>
+                        <Entry Grid.Column="1"
+                               Text="{Binding DownloadFolder, Mode=OneWay}"
+                               IsReadOnly="True"
+                               TextColor="White"
+                               BackgroundColor="{StaticResource SurfaceDark}"/>
+                    </Grid>
+                    <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                        <Button Grid.Column="0"
+                                Text="Choose folder"
+                                Command="{Binding PickDownloadFolderCommand}"
+                                IsEnabled="{Binding IsDownloading, Converter={StaticResource InverseBoolConverter}}"
+                                BackgroundColor="{StaticResource SurfaceDark}"
+                                TextColor="White"
+                                FontSize="11"/>
+                        <Label Grid.Column="1"
+                               Text="{Binding DownloadStage}"
+                               TextColor="{StaticResource Gray300}"
+                               FontSize="11"
+                               VerticalOptions="Center"/>
+                        <Button Grid.Column="2"
+                                Text="Download"
+                                Command="{Binding StartDownloadCommand}"
+                                IsVisible="{Binding IsDownloading, Converter={StaticResource InverseBoolConverter}}"
+                                BackgroundColor="{StaticResource Accent}"
+                                TextColor="White"
+                                FontSize="11"/>
+                        <Button Grid.Column="3"
+                                Text="Cancel"
+                                Command="{Binding CancelDownloadCommand}"
+                                IsVisible="{Binding IsDownloading}"
+                                BackgroundColor="{StaticResource AccentInteractive}"
+                                TextColor="White"
+                                FontSize="11"/>
+                    </Grid>
+                    <ProgressBar Progress="{Binding DownloadPercent}"
+                                 ProgressColor="{StaticResource Accent}"
+                                 IsVisible="{Binding IsDownloading}"
+                                 HeightRequest="4"/>
+                    <Label Text="{Binding DownloadStatus}"
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="10"
+                           LineBreakMode="CharacterWrap"
+                           IsVisible="{Binding DownloadStatus, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border IsVisible="{Binding ShowAdvanced}"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Stroke="{StaticResource Gray600}"
+                    StrokeThickness="1"
+                    Padding="14">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="6"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="8">
+                    <Label Text="Add an API or custom model manually"
+                           TextColor="{StaticResource Gray300}"
+                           FontSize="12"
+                           FontAttributes="Bold"/>
+                    <Label Text="Provider examples: anthropic, openai, ollama, lmstudio, llamacpp, oobabooga, vllm, custom"
+                           TextColor="{StaticResource Gray500}"
+                           FontSize="10"/>
+                    <Label Text="{Binding DetectedServicesSummary}"
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="11"
+                           IsVisible="{Binding DetectedServicesSummary, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+                    <Grid ColumnDefinitions="*,140" ColumnSpacing="8">
+                        <Entry Grid.Column="0"
+                               Text="{Binding NewModelName, Mode=TwoWay}"
+                               Placeholder="Model name (e.g. claude-sonnet-4-6, gpt-4o, llama3.2)"
+                               TextColor="White"
+                               BackgroundColor="{StaticResource SurfaceDark}"
+                               PlaceholderColor="{StaticResource Gray500}"/>
+                        <Entry Grid.Column="1"
+                               Text="{Binding NewModelProvider, Mode=TwoWay}"
+                               Placeholder="Provider"
+                               TextColor="White"
+                               BackgroundColor="{StaticResource SurfaceDark}"
+                               PlaceholderColor="{StaticResource Gray500}"/>
+                    </Grid>
+                    <Label Text="Linkage — endpoint URL or local path that hosts this model. Required for non-Ollama / non-cloud sources."
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="10"/>
+                    <Entry Text="{Binding NewModelEndpoint, Mode=TwoWay}"
+                           Placeholder="e.g. http://127.0.0.1:1234/v1 or C:\models\my-model.gguf"
+                           TextColor="White"
+                           BackgroundColor="{StaticResource SurfaceDark}"
+                           PlaceholderColor="{StaticResource Gray500}"/>
+
+                    <Label Text="Optional API keys — sent to the endpoint when calling this model. Public key → X-API-Key header. Private key → Authorization: Bearer …"
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="10"/>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                        <Entry Grid.Column="0"
+                               Text="{Binding NewModelPublicKey, Mode=TwoWay}"
+                               Placeholder="Public API key (optional)"
+                               TextColor="White"
+                               BackgroundColor="{StaticResource SurfaceDark}"
+                               PlaceholderColor="{StaticResource Gray500}"/>
+                        <Entry Grid.Column="1"
+                               Text="{Binding NewModelPrivateKey, Mode=TwoWay}"
+                               Placeholder="Private API key (optional)"
+                               IsPassword="True"
+                               TextColor="White"
+                               BackgroundColor="{StaticResource SurfaceDark}"
+                               PlaceholderColor="{StaticResource Gray500}"/>
+                    </Grid>
+                    <Button Text="Add"
+                            Command="{Binding AddManualCommand}"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="White"
+                            HorizontalOptions="End"/>
+                </VerticalStackLayout>
+            </Border>
+
+            <Label Text="{Binding ErrorMessage}"
+                   TextColor="{StaticResource AccentInteractive}"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

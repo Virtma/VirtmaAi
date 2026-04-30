@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Settings"
+             xmlns:themes="clr-namespace:VirtmaAi.Services.Themes"
+             x:Class="VirtmaAi.Views.Settings.ThemesPage"
+             x:DataType="vm:ThemesViewModel"
+             Title="Themes"
+             BackgroundColor="{StaticResource SurfaceDark}">
+    <Grid RowDefinitions="Auto,*,Auto" Padding="16" RowSpacing="12">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                <Label Text="Themes" FontSize="22" FontAttributes="Bold" TextColor="White"/>
+                <Label Text="Pick a theme, tweak its palette, apply live."
+                       TextColor="{StaticResource Gray300}"/>
+            </VerticalStackLayout>
+            <Border Grid.Column="1"
+                    VerticalOptions="Center"
+                    StrokeThickness="0"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Padding="12,6">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="12"/>
+                </Border.StrokeShape>
+                <HorizontalStackLayout Spacing="6">
+                    <Label Text="&#x2713;" TextColor="{StaticResource Accent}" FontAttributes="Bold" VerticalOptions="Center"/>
+                    <Label Text="Active:" TextColor="{StaticResource Gray300}" FontSize="11" VerticalOptions="Center"/>
+                    <Label Text="{Binding ActiveName}" TextColor="White" FontAttributes="Bold" FontSize="12" VerticalOptions="Center"/>
+                </HorizontalStackLayout>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="300,*" ColumnSpacing="12">
+            <CollectionView Grid.Column="0"
+                            x:Name="ThemesList"
+                            ItemsSource="{Binding All}"
+                            SelectedItem="{Binding Selected, Mode=TwoWay}"
+                            SelectionMode="Single"
+                            BackgroundColor="{StaticResource SurfaceDarkAlt}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="themes:ThemeDefinition">
+                        <Grid Padding="12,10" ColumnDefinitions="16,*,Auto">
+                            <BoxView Color="{Binding Palette.Primary}" WidthRequest="12" HeightRequest="12" CornerRadius="6" VerticalOptions="Center"/>
+                            <VerticalStackLayout Grid.Column="1" Margin="8,0,0,0">
+                                <Label Text="{Binding Name}" TextColor="White"/>
+                                <Label Text="{Binding Description}" TextColor="{StaticResource Gray400}" FontSize="11"/>
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2"
+                                   Text="&#x2713; Active"
+                                   TextColor="{StaticResource Accent}"
+                                   FontAttributes="Bold"
+                                   FontSize="11"
+                                   VerticalOptions="Center"
+                                   Margin="8,0,0,0">
+                                <Label.IsVisible>
+                                    <MultiBinding Converter="{StaticResource MultiStringEqualsConverter}">
+                                        <Binding Path="Name"/>
+                                        <Binding Source="{x:Reference ThemesList}" Path="BindingContext.ActiveName"/>
+                                    </MultiBinding>
+                                </Label.IsVisible>
+                            </Label>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ScrollView Grid.Column="1" BackgroundColor="{StaticResource SurfaceDarkAlt}" Padding="12">
+                <VerticalStackLayout Spacing="10" BindingContext="{Binding Selected}">
+                    <Label Text="Name" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Name, Mode=TwoWay}" TextColor="White"/>
+
+                    <Label Text="Primary" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Palette.Primary, Mode=TwoWay}" TextColor="White" Placeholder="#E10600"/>
+
+                    <Label Text="Primary pressed" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Palette.PrimaryPressed, Mode=TwoWay}" TextColor="White"/>
+
+                    <Label Text="Secondary / interactive" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Palette.Secondary, Mode=TwoWay}" TextColor="White"/>
+
+                    <Label Text="Surface base" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Palette.SurfaceBase, Mode=TwoWay}" TextColor="White"/>
+
+                    <Label Text="Surface alt" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Palette.SurfaceAlt, Mode=TwoWay}" TextColor="White"/>
+
+                    <Label Text="On surface" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Palette.OnSurface, Mode=TwoWay}" TextColor="White"/>
+
+                    <Label Text="On surface (muted)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Palette.OnSurfaceMuted, Mode=TwoWay}" TextColor="White"/>
+
+                    <Label Text="Border" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding Palette.Border, Mode=TwoWay}" TextColor="White"/>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+
+        <VerticalStackLayout Grid.Row="2" Spacing="8">
+            <HorizontalStackLayout Spacing="8">
+                <Button Text="Apply" Command="{Binding ApplyCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                <Button Text="Save as user theme" Command="{Binding SaveCommand}" BackgroundColor="{StaticResource SurfaceDark}" TextColor="White"/>
+                <Button Text="Export JSON" Command="{Binding ExportSelectedCommand}" BackgroundColor="{StaticResource SurfaceDark}" TextColor="White"/>
+            </HorizontalStackLayout>
+            <Editor Text="{Binding ExportJson, Mode=OneWay}" IsReadOnly="True" HeightRequest="100" BackgroundColor="{StaticResource SurfaceDark}" TextColor="{StaticResource Gray300}"/>
+            <Label Text="Paste JSON to import:" TextColor="{StaticResource Gray300}" FontSize="11"/>
+            <Editor Text="{Binding ImportJson, Mode=TwoWay}" HeightRequest="80" BackgroundColor="{StaticResource SurfaceDark}" TextColor="White"/>
+            <Button Text="Import" Command="{Binding ImportCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White" HorizontalOptions="Start"/>
+            <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource AccentInteractive}" IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+        </VerticalStackLayout>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Database"
+             xmlns:dbs="clr-namespace:VirtmaAi.Services.Database"
+             x:Class="VirtmaAi.Views.Database.DbManagerPage"
+             x:DataType="vm:DbManagerViewModel"
+             Title="Database"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid ColumnDefinitions="280,380,*" Padding="0">
+
+        <!-- Left: DB tree -->
+        <Grid Grid.Column="0" BackgroundColor="{StaticResource SurfaceDarkAlt}" RowDefinitions="Auto,Auto,Auto,*,Auto,*">
+            <VerticalStackLayout Grid.Row="0" Padding="12" Spacing="6">
+                <Label Text="Database" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                <Label Text="{Binding Kind, StringFormat='Kind: {0}'}" TextColor="{StaticResource Gray400}" FontSize="11"/>
+                <Button Text="Refresh" Command="{Binding LoadCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+            </VerticalStackLayout>
+
+            <Label Grid.Row="1" Padding="12,8,12,4" Text="Databases" TextColor="{StaticResource Gray400}" FontSize="11"/>
+            <Picker Grid.Row="2"
+                    Margin="12,0,12,4"
+                    ItemsSource="{Binding Databases}"
+                    SelectedItem="{Binding SelectedDatabase, Mode=TwoWay}"
+                    TextColor="White" BackgroundColor="{StaticResource SurfaceDark}"/>
+
+            <CollectionView Grid.Row="3"
+                            ItemsSource="{Binding Tables}"
+                            SelectedItem="{Binding SelectedTable, Mode=TwoWay}"
+                            SelectionMode="Single">
+                <CollectionView.Header>
+                    <Label Text="Tables" Padding="12,8,12,4" TextColor="{StaticResource Gray400}" FontSize="11"/>
+                </CollectionView.Header>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Label Text="{Binding .}" Padding="12,6" TextColor="White"/>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <HorizontalStackLayout Grid.Row="4" Spacing="6" Padding="12,6">
+                <Button Text="Truncate" Command="{Binding TruncateSelectedTableCommand}" FontSize="11" BackgroundColor="{StaticResource SurfaceDark}" TextColor="White"/>
+                <Button Text="Drop" Command="{Binding DropSelectedTableCommand}" FontSize="11" BackgroundColor="{StaticResource AccentInteractive}" TextColor="White"/>
+            </HorizontalStackLayout>
+
+            <CollectionView Grid.Row="5"
+                            ItemsSource="{Binding QueryHistory}"
+                            SelectionMode="Single"
+                            SelectionChangedCommand="{Binding LoadFromHistoryCommand}"
+                            SelectionChangedCommandParameter="{Binding SelectedItem, Source={RelativeSource Self}}">
+                <CollectionView.Header>
+                    <Label Text="Query history" Padding="12,8,12,4" TextColor="{StaticResource Gray400}" FontSize="11"/>
+                </CollectionView.Header>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="x:String">
+                        <Label Text="{Binding .}" Padding="12,4" TextColor="{StaticResource Gray300}" FontSize="11" LineBreakMode="TailTruncation"/>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- Middle: schema (columns / indexes / triggers) -->
+        <Grid Grid.Column="1" BackgroundColor="{StaticResource SurfaceDark}" RowDefinitions="Auto,*,Auto,*,Auto,*">
+            <Label Grid.Row="0" Text="Columns" Padding="12,10,12,4" TextColor="{StaticResource Gray400}" FontSize="11"/>
+            <CollectionView Grid.Row="1" ItemsSource="{Binding Columns}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="dbs:DbColumnInfo">
+                        <Grid Padding="12,4" ColumnDefinitions="*,Auto,Auto">
+                            <Label Grid.Column="0" TextColor="White" LineBreakMode="TailTruncation">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Name}" FontAttributes="Bold"/>
+                                        <Span Text="  "/>
+                                        <Span Text="{Binding DataType}" TextColor="{StaticResource Gray300}"/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                            <Label Grid.Column="1" Text="PK" IsVisible="{Binding IsPrimaryKey}" TextColor="{StaticResource Accent}" FontSize="10" Margin="6,0"/>
+                            <Label Grid.Column="2" Text="NULL" IsVisible="{Binding Nullable}" TextColor="{StaticResource Gray500}" FontSize="10"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Grid.Row="2" Text="Indexes" Padding="12,10,12,4" TextColor="{StaticResource Gray400}" FontSize="11"/>
+            <CollectionView Grid.Row="3" ItemsSource="{Binding Indexes}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="dbs:DbIndexInfo">
+                        <VerticalStackLayout Padding="12,4">
+                            <Label TextColor="White">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Name}" FontAttributes="Bold"/>
+                                        <Span Text="  ("/>
+                                        <Span Text="{Binding Columns}" TextColor="{StaticResource Gray300}"/>
+                                        <Span Text=")"/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                            <Label Text="UNIQUE" IsVisible="{Binding Unique}" TextColor="{StaticResource Accent}" FontSize="10"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Label Grid.Row="4" Text="Triggers" Padding="12,10,12,4" TextColor="{StaticResource Gray400}" FontSize="11"/>
+            <CollectionView Grid.Row="5" ItemsSource="{Binding Triggers}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="dbs:DbTriggerInfo">
+                        <VerticalStackLayout Padding="12,4">
+                            <Label TextColor="White">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Name}" FontAttributes="Bold"/>
+                                        <Span Text=" on "/>
+                                        <Span Text="{Binding Table}" TextColor="{StaticResource Gray300}"/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                            <Label TextColor="{StaticResource Gray500}" FontSize="10">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="{Binding Timing}"/>
+                                        <Span Text=" "/>
+                                        <Span Text="{Binding Event}"/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- Right: SQL editor + results -->
+        <Grid Grid.Column="2" RowDefinitions="Auto,160,Auto,Auto,Auto,Auto,*" Padding="12" RowSpacing="6">
+            <Label Grid.Row="0" Text="SQL" TextColor="{StaticResource Gray300}" FontSize="11"/>
+            <Editor Grid.Row="1" Text="{Binding SqlText, Mode=TwoWay}" TextColor="White"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}" FontFamily="OpenSansRegular"/>
+            <HorizontalStackLayout Grid.Row="2" Spacing="8">
+                <Button Text="Run" Command="{Binding RunQueryCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                <Label Text="Row limit" TextColor="{StaticResource Gray300}" VerticalOptions="Center"/>
+                <Entry Text="{Binding RowLimit, Mode=TwoWay}" WidthRequest="80" TextColor="White" Keyboard="Numeric"/>
+                <Label Text="{Binding Status}" TextColor="{StaticResource Gray400}" VerticalOptions="Center"/>
+            </HorizontalStackLayout>
+
+            <Label Grid.Row="3" Text="{Binding ErrorMessage}" TextColor="{StaticResource AccentInteractive}"
+                   IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+
+            <BoxView Grid.Row="4" HeightRequest="1" Color="{StaticResource Gray600}"/>
+
+            <Label Grid.Row="5" Text="{Binding QueryColumns, Converter={StaticResource StringJoinConverter}}"
+                   TextColor="{StaticResource Accent}" FontAttributes="Bold" FontFamily="OpenSansRegular"/>
+
+            <CollectionView Grid.Row="6" ItemsSource="{Binding QueryRows}">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DbManagerViewModel+ResultRow">
+                        <Label Text="{Binding ., Converter={StaticResource ResultRowJoinConverter}}"
+                               TextColor="White" FontFamily="OpenSansRegular" FontSize="11" Padding="0,2"/>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+    </Grid>
+</ContentPage>

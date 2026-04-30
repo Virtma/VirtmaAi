@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Training"
+             xmlns:training="clr-namespace:VirtmaAi.Services.Training"
+             x:Class="VirtmaAi.Views.Training.ModelCreatorPage"
+             x:DataType="vm:ModelCreatorViewModel"
+             Title="Train"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid ColumnDefinitions="*,320" Padding="0">
+        <ScrollView Grid.Column="0">
+            <VerticalStackLayout Padding="16" Spacing="10">
+                <Label Text="Create &amp; train a custom model" FontSize="20" FontAttributes="Bold" TextColor="White"/>
+                <Label Text="Pick an architecture, point at a CSV, and train locally with ML.NET." TextColor="{StaticResource Gray400}" FontSize="11"/>
+
+                <BoxView HeightRequest="1" Color="{StaticResource Gray600}" Margin="0,6"/>
+
+                <Label Text="Model name" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Entry Text="{Binding Name, Mode=TwoWay}" TextColor="White"/>
+
+                <Label Text="Architecture" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Picker ItemsSource="{Binding Architectures}" SelectedItem="{Binding Architecture, Mode=TwoWay}" TextColor="White"/>
+
+                <Label Text="Training data (CSV)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <HorizontalStackLayout Spacing="8">
+                    <Entry Text="{Binding CsvPath, Mode=TwoWay}" TextColor="White" WidthRequest="440" Placeholder="Path to .csv"/>
+                    <Button Text="Browse..." Command="{Binding PickCsvCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Spacing="16">
+                    <CheckBox IsChecked="{Binding HasHeader, Mode=TwoWay}" Color="{StaticResource Accent}"/>
+                    <Label Text="CSV has header row" VerticalOptions="Center" TextColor="{StaticResource Gray300}"/>
+                </HorizontalStackLayout>
+
+                <Label Text="Schema expected:" TextColor="{StaticResource Gray400}" FontSize="11" Margin="0,6,0,0"/>
+                <Label TextColor="{StaticResource Gray400}" FontSize="11" FontFamily="OpenSansRegular">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="• Text classifiers: "/><Span Text="text,label" FontAttributes="Bold"/>
+                            <Span Text="&#10;• FastTree regression: "/><Span Text="feature,label" FontAttributes="Bold"/>
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+
+                <Label Text="Test split (0.1 – 0.5)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Entry Text="{Binding TestSplit, Mode=TwoWay}" TextColor="White" Keyboard="Numeric"/>
+
+                <Label Text="Max iterations" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Entry Text="{Binding MaxIterations, Mode=TwoWay}" TextColor="White" Keyboard="Numeric"/>
+
+                <HorizontalStackLayout Spacing="8" Margin="0,8,0,0">
+                    <Button Text="Train" Command="{Binding TrainCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White" IsEnabled="{Binding IsTraining, Converter={StaticResource InverseBoolConverter}}"/>
+                    <Button Text="Cancel" Command="{Binding CancelTrainingCommand}" BackgroundColor="{StaticResource AccentInteractive}" TextColor="White" IsEnabled="{Binding IsTraining}"/>
+                </HorizontalStackLayout>
+
+                <Border Stroke="{StaticResource Gray600}" StrokeShape="RoundRectangle 6" Padding="12" Margin="0,10,0,0" BackgroundColor="{StaticResource SurfaceDarkAlt}">
+                    <VerticalStackLayout Spacing="6">
+                        <Label TextColor="White" FontAttributes="Bold">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="Stage: "/><Span Text="{Binding Stage}"/>
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        <ProgressBar Progress="{Binding Percent}" ProgressColor="{StaticResource Accent}"/>
+                        <Label Text="{Binding StatusMessage}" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource AccentInteractive}" IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Column="1" BackgroundColor="{StaticResource SurfaceDarkAlt}" RowDefinitions="Auto,*,Auto">
+            <VerticalStackLayout Grid.Row="0" Padding="12" Spacing="4">
+                <Label Text="Completed jobs" FontSize="16" FontAttributes="Bold" TextColor="White"/>
+                <Label Text="In-memory for this session" TextColor="{StaticResource Gray400}" FontSize="10"/>
+            </VerticalStackLayout>
+
+            <CollectionView Grid.Row="1" ItemsSource="{Binding Completed}" SelectedItem="{Binding SelectedJob, Mode=TwoWay}" SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="training:TrainedModelInfo">
+                        <VerticalStackLayout Padding="12,8">
+                            <Label Text="{Binding Name}" TextColor="White" FontAttributes="Bold"/>
+                            <Label TextColor="{StaticResource Gray400}" FontSize="10">
+                                <Label.FormattedText>
+                                    <FormattedString>
+                                        <Span Text="Acc/R²: "/><Span Text="{Binding Accuracy, StringFormat='{0:F3}'}"/>
+                                        <Span Text="  Loss/MAE: "/><Span Text="{Binding Loss, StringFormat='{0:F3}'}"/>
+                                    </FormattedString>
+                                </Label.FormattedText>
+                            </Label>
+                            <Label Text="{Binding CreatedAt, StringFormat='{0:HH:mm:ss}'}" TextColor="{StaticResource Gray500}" FontSize="10"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <VerticalStackLayout Grid.Row="2" Padding="12" Spacing="6">
+                <Label Text="Selected job actions" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Button Text="Export to ONNX" Command="{Binding ExportOnnxCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                <Label Text="Ollama model name" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                <Entry Text="{Binding OllamaName, Mode=TwoWay}" TextColor="White" Placeholder="e.g. my-model"/>
+                <Button Text="Register with Ollama" Command="{Binding RegisterOllamaCommand}" BackgroundColor="{StaticResource AccentInteractive}" TextColor="White"/>
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentPage>

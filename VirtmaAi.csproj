@@ -1,0 +1,119 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFrameworks>net10.0-android</TargetFrameworks>
+		<TargetFrameworks Condition="!$([MSBuild]::IsOSPlatform('linux'))">$(TargetFrameworks);net10.0-ios;net10.0-maccatalyst</TargetFrameworks>
+		<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>
+
+		<OutputType>Exe</OutputType>
+		<RootNamespace>VirtmaAi</RootNamespace>
+		<UseMaui>true</UseMaui>
+		<SingleProject>true</SingleProject>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+
+		<MauiXamlInflator>SourceGen</MauiXamlInflator>
+		<NoWarn>$(NoWarn);MVVMTK0045</NoWarn>
+
+		<ApplicationTitle>VirtmaAi</ApplicationTitle>
+		<ApplicationId>com.virtma.ai</ApplicationId>
+		<ApplicationDisplayVersion>0.1</ApplicationDisplayVersion>
+		<ApplicationVersion>1</ApplicationVersion>
+
+		<WindowsPackageType>None</WindowsPackageType>
+
+		<!-- Lock file committed for reproducible NuGet restores.
+		     Clone and run: dotnet restore -->
+		<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'ios'">15.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'maccatalyst'">15.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
+		<SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
+		<TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#0A0A0A" />
+		<MauiSplashScreen Include="Resources\Splash\splash.svg" Color="#0A0A0A" BaseSize="128,128" />
+		<MauiImage Include="Resources\Images\*" />
+		<MauiImage Update="Resources\Images\dotnet_bot.png" Resize="True" BaseSize="300,185" />
+		<MauiFont Include="Resources\Fonts\*" />
+		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup Label="Core MAUI">
+		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="10.0.0" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+		<PackageReference Include="CommunityToolkit.Maui" Version="13.0.0" />
+		<PackageReference Include="CommunityToolkit.Maui.MediaElement" Version="9.0.0" />
+	</ItemGroup>
+
+	<ItemGroup Label="Logging">
+		<PackageReference Include="Serilog.Extensions.Logging" Version="9.0.0" />
+		<PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+		<PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+	</ItemGroup>
+
+	<ItemGroup Label="Data Layer (EF Core 9 for Pomelo compat on .NET 10 runtime)">
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
+		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+		<PackageReference Include="MySqlConnector" Version="2.4.0" />
+	</ItemGroup>
+
+	<ItemGroup Label="AI Providers">
+		<PackageReference Include="OllamaSharp" Version="5.4.25" />
+		<PackageReference Include="Anthropic.SDK" Version="5.10.0" />
+		<PackageReference Include="OpenAI" Version="2.10.0" />
+		<PackageReference Include="Microsoft.Extensions.AI" Version="10.5.0" />
+		<PackageReference Include="Microsoft.Extensions.AI.Abstractions" Version="10.5.0" />
+	</ItemGroup>
+
+	<!-- LLamaSharp: direct GGUF model inference without Ollama (desktop / Windows only).
+	     CPU backend only — GPU offload requires LLamaSharp.Backend.Cuda12 / Vulkan etc.
+	     Update the version to the latest stable release before shipping. -->
+	<ItemGroup Label="LLamaSharp — direct GGUF inference (Windows only)"
+	           Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+		<PackageReference Include="LLamaSharp" Version="0.21.0" />
+		<PackageReference Include="LLamaSharp.Backend.Cpu" Version="0.21.0" />
+	</ItemGroup>
+
+	<ItemGroup Label="Document parsing">
+		<!-- MIT-licensed. Extracts text from PDF files for inline AI analysis. -->
+		<PackageReference Include="PdfPig" Version="0.1.14" />
+	</ItemGroup>
+
+	<ItemGroup Label="Markdown">
+		<PackageReference Include="Markdig" Version="0.44.0" />
+		<PackageReference Include="Indiko.Maui.Controls.Markdown" Version="1.5.0" />
+	</ItemGroup>
+
+	<ItemGroup Label="Git Diff (Phase 4)">
+		<PackageReference Include="LibGit2Sharp" Version="0.31.0" />
+	</ItemGroup>
+
+	<ItemGroup Label="Charts / 2D drawing (Phase 15)">
+		<PackageReference Include="SkiaSharp.Views.Maui.Controls" Version="3.119.2" />
+	</ItemGroup>
+
+	<ItemGroup Label="ML / Training (Phase 16)">
+		<PackageReference Include="Microsoft.ML" Version="4.0.2" />
+		<PackageReference Include="Microsoft.ML.FastTree" Version="4.0.2" />
+		<PackageReference Include="Microsoft.ML.OnnxConverter" Version="0.22.2" />
+	</ItemGroup>
+
+	<ItemGroup Label="Windows-only (Crash reporter EventLog + screen capture + GPU perf counters)" Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
+		<PackageReference Include="System.Diagnostics.EventLog" Version="10.0.0" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="10.0.0" />
+		<PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+	</ItemGroup>
+
+</Project>

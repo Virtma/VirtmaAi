@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Integrations"
+             xmlns:entities="clr-namespace:VirtmaAi.Models.Entities"
+             xmlns:svc="clr-namespace:VirtmaAi.Services.Integrations"
+             x:Class="VirtmaAi.Views.Integrations.IntegrationsPage"
+             x:DataType="vm:IntegrationsViewModel"
+             Title="Integrations"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid ColumnDefinitions="320,*,300" Padding="0">
+
+        <!-- Catalog -->
+        <Grid Grid.Column="0" BackgroundColor="{StaticResource SurfaceDarkAlt}" RowDefinitions="Auto,*">
+            <VerticalStackLayout Grid.Row="0" Padding="12" Spacing="6">
+                <Label Text="Services" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                <Label Text="Click Connect to start linking" FontSize="11" TextColor="{StaticResource Gray400}"/>
+            </VerticalStackLayout>
+
+            <CollectionView x:Name="CatalogList"
+                            Grid.Row="1"
+                            ItemsSource="{Binding Catalog}"
+                            SelectedItem="{Binding SelectedCatalog, Mode=TwoWay}"
+                            SelectionMode="Single">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="svc:IntegrationCatalogEntry">
+                        <Grid Padding="12,10" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                            <VerticalStackLayout Grid.Column="0">
+                                <Label Text="{Binding Name}" TextColor="White"/>
+                                <Label Text="{Binding Description}" TextColor="{StaticResource Gray400}" FontSize="10" LineBreakMode="TailTruncation" MaxLines="1"/>
+                                <Label Text="{Binding AuthType}" TextColor="{StaticResource Gray500}" FontSize="10"/>
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1"
+                                    Text="Connect"
+                                    FontSize="11"
+                                    HeightRequest="30"
+                                    Padding="10,0"
+                                    BackgroundColor="{StaticResource Accent}"
+                                    TextColor="White"
+                                    Command="{Binding Source={x:Reference CatalogList}, Path=BindingContext.QuickConnectCommand}"
+                                    CommandParameter="{Binding .}"/>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- Editor -->
+        <ScrollView Grid.Column="1">
+            <VerticalStackLayout Padding="16" Spacing="8">
+                <Label Text="{Binding SelectedCatalog.Name, FallbackValue='Select a service to begin'}"
+                       FontSize="20"
+                       TextColor="White"
+                       FontAttributes="Bold"/>
+                <Label Text="{Binding SelectedCatalog.Description}" TextColor="{StaticResource Gray400}" FontSize="12"/>
+                <Label Text="{Binding SelectedCatalog.DocsUrl}" TextColor="{StaticResource Accent}" FontSize="11"/>
+
+                <Label Text="Account identifier (optional — your username / email)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                <Entry Text="{Binding AccountIdentifier, Mode=TwoWay}"
+                       TextColor="White"
+                       Placeholder="e.g. you@example.com"
+                       PlaceholderColor="{StaticResource Gray500}"/>
+
+                <!-- API key flow -->
+                <VerticalStackLayout Spacing="6" IsVisible="{Binding IsApiKey}">
+                    <BoxView HeightRequest="1" Color="{StaticResource Gray600}" Margin="0,8"/>
+                    <Label Text="API key" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding ApiKey, Mode=TwoWay}"
+                           TextColor="White"
+                           IsPassword="True"
+                           Placeholder="Paste your API key"
+                           PlaceholderColor="{StaticResource Gray500}"/>
+                    <Button Text="Connect"
+                            Command="{Binding ConnectApiKeyCommand}"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="White"
+                            HorizontalOptions="Start"/>
+                </VerticalStackLayout>
+
+                <!-- OAuth flow -->
+                <VerticalStackLayout Spacing="6" IsVisible="{Binding IsOAuth}">
+                    <BoxView HeightRequest="1" Color="{StaticResource Gray600}" Margin="0,8"/>
+                    <Label Text="OAuth client ID — register an app with the provider once to obtain this (we remember it)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding OauthClientId, Mode=TwoWay}"
+                           TextColor="White"
+                           Placeholder="abc123.apps.googleusercontent.com"
+                           PlaceholderColor="{StaticResource Gray500}"/>
+                    <Label Text="OAuth client secret (if required)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding OauthClientSecret, Mode=TwoWay}"
+                           TextColor="White"
+                           IsPassword="True"
+                           Placeholder="GOCSPX-…"
+                           PlaceholderColor="{StaticResource Gray500}"/>
+                    <Label Text="Scope (space-separated)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding OauthScopeOverride, Mode=TwoWay}" TextColor="White"/>
+                    <Label Text="On Connect a browser window opens; redirect URL is http://127.0.0.1:&lt;port&gt;/callback — add it to your app's allowed redirect URIs."
+                           TextColor="{StaticResource Gray500}"
+                           FontSize="10"/>
+                    <Button Text="Connect via browser"
+                            Command="{Binding ConnectOAuthCommand}"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="White"
+                            HorizontalOptions="Start"/>
+                </VerticalStackLayout>
+
+                <!-- Unknown / custom -->
+                <VerticalStackLayout Spacing="6" IsVisible="{Binding IsUnknown}">
+                    <BoxView HeightRequest="1" Color="{StaticResource Gray600}" Margin="0,8"/>
+                    <Label Text="Custom / unknown service — describe endpoint and credentials here; the AI can discover API shape from your notes."
+                           TextColor="{StaticResource Gray400}"
+                           FontSize="11"/>
+                    <Label Text="Service name" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding UnknownServiceName, Mode=TwoWay}"
+                           TextColor="White"
+                           Placeholder="My internal API"
+                           PlaceholderColor="{StaticResource Gray500}"/>
+                    <Label Text="Base URL" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding UnknownBaseUrl, Mode=TwoWay}"
+                           TextColor="White"
+                           Placeholder="https://api.example.com"
+                           PlaceholderColor="{StaticResource Gray500}"/>
+                    <Label Text="Credentials / notes (stored encrypted)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Editor Text="{Binding UnknownCredentials, Mode=TwoWay}"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="100"
+                            MaximumHeightRequest="240"
+                            TextColor="White"
+                            BackgroundColor="{StaticResource SurfaceDarkAlt}"/>
+                    <Button Text="Save"
+                            Command="{Binding SaveUnknownCommand}"
+                            BackgroundColor="{StaticResource Accent}"
+                            TextColor="White"
+                            HorizontalOptions="Start"/>
+                </VerticalStackLayout>
+
+                <Label Text="{Binding StatusMessage}" TextColor="{StaticResource Accent}" IsVisible="{Binding StatusMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+                <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource AccentInteractive}" IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Connected -->
+        <Grid Grid.Column="2" BackgroundColor="{StaticResource SurfaceDarkAlt}" RowDefinitions="Auto,*,Auto">
+            <VerticalStackLayout Grid.Row="0" Padding="12" Spacing="6">
+                <Label Text="Connected" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                <Button Text="Refresh"
+                        Command="{Binding LoadCommand}"
+                        BackgroundColor="{StaticResource SurfaceDark}"
+                        TextColor="White"/>
+            </VerticalStackLayout>
+
+            <CollectionView Grid.Row="1"
+                            ItemsSource="{Binding Connected}"
+                            SelectedItem="{Binding SelectedConnected, Mode=TwoWay}"
+                            SelectionMode="Single">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Padding="14">
+                        <Label Text="Nothing connected yet"
+                               TextColor="{StaticResource Gray400}"
+                               FontSize="12"
+                               HorizontalOptions="Center"/>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="entities:Integration">
+                        <VerticalStackLayout Padding="12,8">
+                            <Label Text="{Binding ServiceName}" TextColor="White"/>
+                            <Label Text="{Binding AccountIdentifier}" TextColor="{StaticResource Gray400}" FontSize="10"/>
+                            <Label Text="{Binding ConnectedAt, StringFormat='{0:yyyy-MM-dd HH:mm}'}" TextColor="{StaticResource Gray500}" FontSize="10"/>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <Button Grid.Row="2"
+                    Text="Disconnect selected"
+                    Command="{Binding DisconnectCommand}"
+                    Margin="12"
+                    BackgroundColor="{StaticResource AccentInteractive}"
+                    TextColor="White"/>
+        </Grid>
+    </Grid>
+</ContentPage>

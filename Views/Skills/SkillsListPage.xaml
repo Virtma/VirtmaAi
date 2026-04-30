@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.Skills"
+             xmlns:entities="clr-namespace:VirtmaAi.Models.Entities"
+             x:Class="VirtmaAi.Views.Skills.SkillsListPage"
+             x:DataType="vm:SkillsViewModel"
+             Title="Skills"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid>
+        <Grid ColumnDefinitions="280,*" Padding="0">
+            <Grid Grid.Column="0" BackgroundColor="{StaticResource SurfaceDarkAlt}" RowDefinitions="Auto,*">
+                <VerticalStackLayout Grid.Row="0" Padding="12" Spacing="8">
+                    <Label Text="Skills" FontSize="18" FontAttributes="Bold" TextColor="White"/>
+                    <Button Text="+ New" Command="{Binding NewCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                </VerticalStackLayout>
+                <CollectionView x:Name="SkillsList"
+                                Grid.Row="1"
+                                ItemsSource="{Binding All}"
+                                SelectedItem="{Binding Selected, Mode=TwoWay}"
+                                SelectionMode="Single">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="entities:Skill">
+                            <Grid Padding="12,10" ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                <VerticalStackLayout Grid.Column="0">
+                                    <Label Text="{Binding Name}" TextColor="White" FontSize="14"/>
+                                    <Label Text="{Binding TriggerDescription}" TextColor="{StaticResource Gray400}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1"/>
+                                </VerticalStackLayout>
+                                <Switch Grid.Column="1"
+                                        IsToggled="{Binding Enabled, Mode=TwoWay}"
+                                        OnColor="{StaticResource Accent}"
+                                        ThumbColor="White"
+                                        VerticalOptions="Center"
+                                        Toggled="OnSkillEnabledToggled"/>
+                            </Grid>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+
+            <ScrollView Grid.Column="1">
+                <VerticalStackLayout Padding="16" Spacing="8">
+                    <Label Text="Name" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Entry Text="{Binding EditorName, Mode=TwoWay}" TextColor="White"/>
+
+                    <Label Text="Trigger description" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Editor Text="{Binding EditorTrigger, Mode=TwoWay}"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="60"
+                            MaximumHeightRequest="160"
+                            TextColor="White"
+                            BackgroundColor="{StaticResource SurfaceDarkAlt}"/>
+
+                    <Label Text="Instructions (markdown)" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Editor Text="{Binding EditorInstructions, Mode=TwoWay}"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="240"
+                            MaximumHeightRequest="600"
+                            TextColor="White"
+                            BackgroundColor="{StaticResource SurfaceDarkAlt}"/>
+
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                        <Label Grid.Column="0"
+                               Text="Context references"
+                               TextColor="{StaticResource Gray300}"
+                               FontSize="11"
+                               VerticalOptions="Center"/>
+                        <Button Grid.Column="1"
+                                Text="+ Add reference"
+                                Command="{Binding OpenAddContextCommand}"
+                                BackgroundColor="{StaticResource Accent}"
+                                TextColor="White"
+                                FontSize="12"
+                                HeightRequest="32"/>
+                    </Grid>
+
+                    <Border Stroke="{StaticResource Gray600}" StrokeThickness="1" BackgroundColor="{StaticResource SurfaceDarkAlt}" Padding="0">
+                        <VerticalStackLayout>
+                            <Label Text="No context yet — add a file, URL, or text reference."
+                                   TextColor="{StaticResource Gray400}"
+                                   FontSize="11"
+                                   Padding="12"
+                                   IsVisible="{Binding ContextEntries.Count, Converter={StaticResource IsGreaterThanZeroConverter}, ConverterParameter=invert}"/>
+                            <CollectionView x:Name="ContextList"
+                                            ItemsSource="{Binding ContextEntries}"
+                                            SelectionMode="None">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:SkillContextEntry">
+                                        <Grid Padding="12,8" ColumnDefinitions="64,*,Auto,Auto" ColumnSpacing="8">
+                                            <Border Grid.Column="0"
+                                                    StrokeThickness="0"
+                                                    BackgroundColor="{StaticResource SurfaceDark}"
+                                                    Padding="6,2"
+                                                    VerticalOptions="Center">
+                                                <Border.StrokeShape>
+                                                    <RoundRectangle CornerRadius="6"/>
+                                                </Border.StrokeShape>
+                                                <Label Text="{Binding KindLabel}"
+                                                       TextColor="{StaticResource Accent}"
+                                                       FontSize="10"
+                                                       FontAttributes="Bold"
+                                                       HorizontalOptions="Center"/>
+                                            </Border>
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding DisplayValue}"
+                                                   TextColor="White"
+                                                   FontSize="12"
+                                                   LineBreakMode="TailTruncation"
+                                                   VerticalOptions="Center"/>
+                                            <Button Grid.Column="2"
+                                                    Text="Edit"
+                                                    FontSize="11"
+                                                    HeightRequest="28"
+                                                    BackgroundColor="{StaticResource SurfaceDark}"
+                                                    TextColor="White"
+                                                    Command="{Binding Source={x:Reference ContextList}, Path=BindingContext.EditContextCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                            <Button Grid.Column="3"
+                                                    Text="✕"
+                                                    FontSize="11"
+                                                    HeightRequest="28"
+                                                    WidthRequest="32"
+                                                    Padding="0"
+                                                    BackgroundColor="{StaticResource AccentInteractive}"
+                                                    TextColor="White"
+                                                    Command="{Binding Source={x:Reference ContextList}, Path=BindingContext.DeleteContextCommand}"
+                                                    CommandParameter="{Binding .}"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <HorizontalStackLayout Spacing="8" Margin="0,8,0,0">
+                        <Button Text="Save" Command="{Binding SaveCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White"/>
+                        <Button Text="Delete" Command="{Binding DeleteCommand}" BackgroundColor="{StaticResource AccentInteractive}" TextColor="White"/>
+                        <Button Text="Export JSON" Command="{Binding ExportSelectedCommand}" BackgroundColor="{StaticResource SurfaceDarkAlt}" TextColor="White"/>
+                    </HorizontalStackLayout>
+
+                    <Editor Text="{Binding ExportJson, Mode=OneWay}" IsReadOnly="True" HeightRequest="100" BackgroundColor="{StaticResource SurfaceDarkAlt}" TextColor="{StaticResource Gray300}"/>
+
+                    <Label Text="Paste JSON to import:" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Editor Text="{Binding ImportJson, Mode=TwoWay}" HeightRequest="80" BackgroundColor="{StaticResource SurfaceDarkAlt}" TextColor="White"/>
+                    <Button Text="Import" Command="{Binding ImportCommand}" BackgroundColor="{StaticResource Accent}" TextColor="White" HorizontalOptions="Start"/>
+
+                    <Label Text="{Binding ErrorMessage}" TextColor="{StaticResource AccentInteractive}" IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+
+        <!-- Context modal overlay -->
+        <Grid IsVisible="{Binding IsContextModalOpen}"
+              BackgroundColor="#CC000000">
+            <Border HorizontalOptions="Center"
+                    VerticalOptions="Center"
+                    WidthRequest="520"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    Stroke="{StaticResource Gray600}"
+                    StrokeThickness="1"
+                    Padding="16">
+                <Border.StrokeShape>
+                    <RoundRectangle CornerRadius="8"/>
+                </Border.StrokeShape>
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="Add context reference"
+                           FontSize="16"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <Label Text="Type" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Picker ItemsSource="{Binding ContextKinds}"
+                            SelectedItem="{Binding DraftKind, Mode=TwoWay}"
+                            TextColor="White"
+                            BackgroundColor="{StaticResource SurfaceDark}"/>
+                    <Label Text="Value" TextColor="{StaticResource Gray300}" FontSize="11"/>
+                    <Editor Text="{Binding DraftValue, Mode=TwoWay}"
+                            AutoSize="TextChanges"
+                            MinimumHeightRequest="80"
+                            MaximumHeightRequest="300"
+                            Placeholder="File path, URL, or free-form text"
+                            PlaceholderColor="{StaticResource Gray500}"
+                            TextColor="White"
+                            BackgroundColor="{StaticResource SurfaceDark}"/>
+                    <HorizontalStackLayout Spacing="8" HorizontalOptions="End" Margin="0,8,0,0">
+                        <Button Text="Cancel"
+                                Command="{Binding CancelContextCommand}"
+                                BackgroundColor="{StaticResource SurfaceDark}"
+                                TextColor="White"/>
+                        <Button Text="Save reference"
+                                Command="{Binding CommitContextCommand}"
+                                BackgroundColor="{StaticResource Accent}"
+                                TextColor="White"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentPage>

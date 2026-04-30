@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:VirtmaAi.ViewModels.FirstRun"
+             xmlns:notif="clr-namespace:VirtmaAi.Views.Notifications"
+             x:Class="VirtmaAi.Views.FirstRun.FirstRunPage"
+             x:DataType="vm:FirstRunViewModel"
+             Title="Welcome to VirtmaAi"
+             BackgroundColor="{StaticResource SurfaceDark}">
+
+    <Grid RowDefinitions="Auto,*,Auto"
+          Padding="32"
+          RowSpacing="24">
+
+        <VerticalStackLayout Grid.Row="0" Spacing="4">
+            <Label Text="VirtmaAi Setup"
+                   FontSize="28"
+                   FontAttributes="Bold"
+                   TextColor="White"/>
+            <Label Text="Let's get your workspace ready."
+                   FontSize="14"
+                   TextColor="{StaticResource Gray300}"/>
+            <BoxView HeightRequest="2"
+                     Color="{StaticResource Accent}"
+                     HorizontalOptions="Fill"
+                     Margin="0,12,0,0"/>
+        </VerticalStackLayout>
+
+        <ScrollView Grid.Row="1">
+            <VerticalStackLayout Spacing="16">
+
+                <!-- Welcome -->
+                <VerticalStackLayout IsVisible="{Binding Step, Converter={StaticResource StepEqualsConverter}, ConverterParameter='Welcome'}"
+                                     Spacing="12">
+                    <Label Text="Privacy-first, local-first AI."
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <Label TextColor="{StaticResource Gray200}">
+                        VirtmaAi stores your conversations, models, and API keys locally.
+                        Nothing is shared with third parties unless you explicitly connect them.
+                    </Label>
+                    <Label Text="This wizard will:"
+                           FontAttributes="Bold"
+                           TextColor="White"
+                           Margin="0,8,0,0"/>
+                    <Label Text="• Pick where to store your data"
+                           TextColor="{StaticResource Gray200}"/>
+                    <Label Text="• Configure the local database (MySQL on desktop, SQLite on mobile)"
+                           TextColor="{StaticResource Gray200}"/>
+                    <Label Text="• Get you ready for your first chat"
+                           TextColor="{StaticResource Gray200}"/>
+                </VerticalStackLayout>
+
+                <!-- Data directory -->
+                <VerticalStackLayout IsVisible="{Binding Step, Converter={StaticResource StepEqualsConverter}, ConverterParameter='DataDirectory'}"
+                                     Spacing="12">
+                    <Label Text="Data directory"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <Label Text="Where should VirtmaAi keep your data? Conversations, models, and logs live here."
+                           TextColor="{StaticResource Gray200}"/>
+                    <Entry Text="{Binding DataDirectory, Mode=TwoWay}"
+                           Placeholder="C:\Users\you\.virtmaai\data"
+                           TextColor="White"
+                           BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                           PlaceholderColor="{StaticResource Gray500}"/>
+                    <HorizontalStackLayout Spacing="8">
+                        <Button Text="Use default"
+                                Command="{Binding UseDefaultPathCommand}"
+                                BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                                TextColor="White"/>
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+
+                <!-- Database -->
+                <VerticalStackLayout IsVisible="{Binding Step, Converter={StaticResource StepEqualsConverter}, ConverterParameter='Database'}"
+                                     Spacing="12">
+                    <Label Text="Database"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <Label Text="On desktop, VirtmaAi prefers MySQL. If it isn't running locally, we'll fall back to SQLite — you can change this later."
+                           TextColor="{StaticResource Gray200}"/>
+                    <HorizontalStackLayout Spacing="8"
+                                           IsVisible="{Binding IsMySqlSupported}">
+                        <Switch IsToggled="{Binding PreferMySql, Mode=TwoWay}"
+                                OnColor="{StaticResource Accent}"/>
+                        <Label Text="Prefer MySQL (fallback: SQLite)"
+                               TextColor="White"
+                               VerticalOptions="Center"/>
+                    </HorizontalStackLayout>
+                    <Label Text="Mobile uses SQLite automatically."
+                           FontSize="12"
+                           TextColor="{StaticResource Gray400}"
+                           IsVisible="{Binding IsMySqlSupported, Converter={StaticResource InverseBoolConverter}}"/>
+                </VerticalStackLayout>
+
+                <!-- Provisioning -->
+                <VerticalStackLayout IsVisible="{Binding Step, Converter={StaticResource StepEqualsConverter}, ConverterParameter='Provisioning'}"
+                                     Spacing="12">
+                    <Label Text="Setting up..."
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <ActivityIndicator IsRunning="{Binding IsBusy}"
+                                       Color="{StaticResource Accent}"/>
+                    <Label Text="{Binding ProgressStage}"
+                           TextColor="{StaticResource Gray200}"/>
+                    <ProgressBar Progress="{Binding ProgressPercent}"
+                                 ProgressColor="{StaticResource Accent}"/>
+                </VerticalStackLayout>
+
+                <!-- Complete -->
+                <VerticalStackLayout IsVisible="{Binding Step, Converter={StaticResource StepEqualsConverter}, ConverterParameter='Complete'}"
+                                     Spacing="12">
+                    <Label Text="All set!"
+                           FontSize="22"
+                           FontAttributes="Bold"
+                           TextColor="White"/>
+                    <Label Text="VirtmaAi is ready. The next step is your first conversation."
+                           TextColor="{StaticResource Gray200}"/>
+                </VerticalStackLayout>
+
+                <!-- Error surface -->
+                <Label Text="{Binding ErrorMessage}"
+                       TextColor="{StaticResource AccentInteractive}"
+                       IsVisible="{Binding ErrorMessage, Converter={StaticResource IsNotNullOrEmptyConverter}}"/>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid Grid.Row="2" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+            <Button Grid.Column="0"
+                    Text="Back"
+                    Command="{Binding BackCommand}"
+                    BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                    TextColor="White"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"/>
+            <Button Grid.Column="2"
+                    Text="Next"
+                    Command="{Binding NextCommand}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                    IsVisible="{Binding Step, Converter={StaticResource StepShowNextConverter}}"/>
+            <Button Grid.Column="3"
+                    Text="Install"
+                    Command="{Binding ProvisionCommand}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"
+                    IsEnabled="{Binding IsBusy, Converter={StaticResource InverseBoolConverter}}"
+                    IsVisible="{Binding Step, Converter={StaticResource StepEqualsConverter}, ConverterParameter='Database'}"/>
+            <Button Grid.Column="3"
+                    Text="Launch"
+                    Command="{Binding LaunchCommand}"
+                    BackgroundColor="{StaticResource Accent}"
+                    TextColor="White"
+                    IsVisible="{Binding Step, Converter={StaticResource StepEqualsConverter}, ConverterParameter='Complete'}"/>
+        </Grid>
+
+        <notif:ToastHostView Grid.Row="0" Grid.RowSpan="3"
+                             VerticalOptions="Start"
+                             HorizontalOptions="End"/>
+    </Grid>
+</ContentPage>
