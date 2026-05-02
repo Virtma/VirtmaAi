@@ -148,6 +148,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<IBuiltInPlugin, ScriptRunnerPlugin>();
         builder.Services.AddSingleton<IBuiltInPlugin, AudioTranscribePlugin>();
         builder.Services.AddSingleton<IBuiltInPlugin, VideoAnalyzePlugin>();
+        builder.Services.AddSingleton<IBuiltInPlugin, WebSearchPlugin>();
         builder.Services.AddSingleton<IPluginHost, PluginHost>();
         builder.Services.AddTransient<PluginsViewModel>();
         builder.Services.AddTransient<PluginsListPage>();

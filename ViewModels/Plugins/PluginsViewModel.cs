@@ -3,24 +3,41 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using VirtmaAi.Models.Entities;
+using VirtmaAi.Services.Notifications;
 using VirtmaAi.Services.Plugins;
+using VirtmaAi.Services.Plugins.BuiltIn;
+using VirtmaAi.Services.Settings;
 
 namespace VirtmaAi.ViewModels.Plugins;
 
 public sealed partial class PluginsViewModel : ViewModelBase
 {
     private readonly IPluginHost _host;
+    private readonly ISettingsService _settings;
+    private readonly IToastService _toast;
     private readonly ILogger<PluginsViewModel> _logger;
 
-    public PluginsViewModel(IPluginHost host, ILogger<PluginsViewModel> logger)
+    public PluginsViewModel(
+        IPluginHost host,
+        ISettingsService settings,
+        IToastService toast,
+        ILogger<PluginsViewModel> logger)
     {
         _host = host;
+        _settings = settings;
+        _toast = toast;
         _logger = logger;
         foreach (var b in _host.BuiltIn) BuiltIn.Add(new BuiltInPluginRow(b.Name, b.Description));
+
+        // Load persisted web-search timeout setting.
+        var saved = _settings.Get<int>(WebSearchPlugin.SettingTimeoutKey, WebSearchPlugin.DefaultTimeoutSeconds);
+        _webSearchTimeoutText = saved.ToString();
     }
 
     public ObservableCollection<Plugin> All { get; } = new();
     public ObservableCollection<BuiltInPluginRow> BuiltIn { get; } = new();
+
+    // ── User plugin editor ────────────────────────────────────────────────────────
 
     [ObservableProperty] private Plugin? _selected;
     [ObservableProperty] private string _editorName = string.Empty;
@@ -30,6 +47,15 @@ public sealed partial class PluginsViewModel : ViewModelBase
     [ObservableProperty] private string _editorArgsTemplate = string.Empty;
     [ObservableProperty] private string _testInput = string.Empty;
     [ObservableProperty] private string _testOutput = string.Empty;
+
+    // ── Built-in plugin settings ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Text value of the web-search timeout entry (seconds).
+    /// "0" means no timeout — wait indefinitely (user Stop is the only limit).
+    /// </summary>
+    [ObservableProperty]
+    private string _webSearchTimeoutText = WebSearchPlugin.DefaultTimeoutSeconds.ToString();
 
     partial void OnSelectedChanged(Plugin? value)
     {
@@ -111,6 +137,27 @@ public sealed partial class PluginsViewModel : ViewModelBase
         TestOutput = result.Success
             ? result.Output
             : "ERROR: " + (result.Error ?? "unknown") + "\n\n" + result.Output;
+    }
+
+    /// <summary>
+    /// Persists the web-search timeout entered by the user.
+    /// Validates that the input is a non-negative integer.
+    /// </summary>
+    [RelayCommand]
+    public async Task SaveWebSearchSettingsAsync()
+    {
+        var trimmed = (WebSearchTimeoutText ?? string.Empty).Trim();
+        if (!int.TryParse(trimmed, out var seconds) || seconds < 0)
+        {
+            ErrorMessage = "Timeout must be a non-negative whole number (0 = no timeout).";
+            await _toast.WarningAsync("Enter a number ≥ 0 (0 = no timeout).");
+            return;
+        }
+
+        _settings.Set(WebSearchPlugin.SettingTimeoutKey, seconds);
+        ErrorMessage = null;
+        var label = seconds == 0 ? "no timeout" : $"{seconds} s";
+        await _toast.SuccessAsync($"Web search timeout saved: {label}.");
     }
 }
 

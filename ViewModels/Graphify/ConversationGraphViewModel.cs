@@ -118,12 +118,33 @@ public sealed partial class ConversationGraphViewModel : ViewModelBase
 
     private static string BuildGraphPayload(Conversation? conv, IReadOnlyList<Message> msgs)
     {
-        var nodes = new List<object>(msgs.Count);
+        // ── Re-order so each thinking node appears BEFORE its parent assistant node ────────
+        //
+        // In the DB, PersistAssistantAsync saves the assistant row first (earlier CreatedAt),
+        // then the thinking row — so raw DB order puts thinking after assistant, which is
+        // the wrong flow direction for the graph (thinking logically PRECEDES the response).
+        //
+        // Build a lookup of thinkingMsg → parentAssistantId and reconstruct the list with
+        // each thinking node inserted just before its assistant.
+        var thinkingParentMap = msgs
+            .Where(m => m.Role == MessageRole.Thinking && m.ParentMessageId.HasValue)
+            .ToDictionary(m => m.ParentMessageId!.Value);
+
+        var ordered = new List<Message>(msgs.Count);
+        foreach (var m in msgs)
+        {
+            if (m.Role == MessageRole.Thinking) continue; // injected just before its parent below
+            if (m.Role == MessageRole.Assistant && thinkingParentMap.TryGetValue(m.Id, out var thinkingMsg))
+                ordered.Add(thinkingMsg); // thinking node first
+            ordered.Add(m);
+        }
+
+        var nodes = new List<object>(ordered.Count);
         var edges = new List<object>();
 
-        for (int i = 0; i < msgs.Count; i++)
+        for (int i = 0; i < ordered.Count; i++)
         {
-            var m = msgs[i];
+            var m = ordered[i];
             var role = ClassifyRole(m);
             var label = Snippet(m.Content, 56);
             var weight = 10 + Math.Min(40, (m.Content?.Length ?? 0) / 80);
@@ -142,14 +163,20 @@ public sealed partial class ConversationGraphViewModel : ViewModelBase
             {
                 edges.Add(new
                 {
-                    from = msgs[i - 1].Id.ToString("N"),
+                    from = ordered[i - 1].Id.ToString("N"),
                     to = m.Id.ToString("N"),
                     implicit_ = false
                 });
             }
 
-            // Explicit parent-child edge (e.g. thinking blocks linked to their assistant message).
-            if (m.ParentMessageId is Guid parent && msgs.Any(x => x.Id == parent))
+            // Explicit parent-child edge for non-thinking parent-child relationships.
+            // Thinking nodes are already placed sequentially before their parent assistant
+            // in `ordered`, so the sequential edge above already captures that relationship.
+            // Adding a second explicit edge in the old direction (assistant → thinking) would
+            // create a cycle in the graph; skipping it here is the correct behaviour.
+            if (m.ParentMessageId is Guid parent &&
+                m.Role != MessageRole.Thinking &&
+                ordered.Any(x => x.Id == parent))
             {
                 edges.Add(new
                 {
@@ -162,18 +189,18 @@ public sealed partial class ConversationGraphViewModel : ViewModelBase
 
         // Topical edges: messages sharing rare-ish keywords get a dashed implicit edge. Cheap O(n²)
         // scan — fine for typical conversation lengths.
-        var tokenSets = msgs.Select(m => Tokenize(m.Content)).ToList();
-        for (int i = 0; i < msgs.Count; i++)
+        var tokenSets = ordered.Select(m => Tokenize(m.Content)).ToList();
+        for (int i = 0; i < ordered.Count; i++)
         {
-            for (int j = i + 2; j < msgs.Count; j++) // skip immediate neighbor (already linked)
+            for (int j = i + 2; j < ordered.Count; j++) // skip immediate neighbor (already linked)
             {
                 var shared = tokenSets[i].Intersect(tokenSets[j]).Take(3).Count();
                 if (shared >= 2)
                 {
                     edges.Add(new
                     {
-                        from = msgs[i].Id.ToString("N"),
-                        to = msgs[j].Id.ToString("N"),
+                        from = ordered[i].Id.ToString("N"),
+                        to = ordered[j].Id.ToString("N"),
                         implicit_ = true,
                         arrow = false
                     });

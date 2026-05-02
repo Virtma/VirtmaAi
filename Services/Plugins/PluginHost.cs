@@ -118,6 +118,14 @@ public sealed class PluginHost : IPluginHost
         var plugin = _builtIn.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
         if (plugin is null) return new PluginInvocationResult(false, string.Empty, "built-in plugin not found: " + name);
         try { return await plugin.InvokeAsync(input, ct); }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; } // user Stop must propagate — don't swallow
+        catch (OperationCanceledException ex)
+        {
+            // Non-user cancellation (e.g. an internal timeout token that escaped the plugin's
+            // own catch block) — convert to a clean error result instead of re-throwing.
+            _logger.LogWarning(ex, "Built-in plugin {Name} was cancelled by an internal token", name);
+            return new PluginInvocationResult(false, string.Empty, $"Plugin timed out or was cancelled internally: {ex.Message}");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Built-in plugin {Name} threw", name);

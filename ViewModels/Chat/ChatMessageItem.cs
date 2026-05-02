@@ -43,11 +43,25 @@ public sealed partial class ChatMessageItem : ObservableObject
     public bool HasThinking => !string.IsNullOrEmpty(Thinking);
 
     /// <summary>
-    /// True when the final settled content contains at least one fenced code block.
-    /// Controls whether the slow WebView-based highlighted renderer is used instead
-    /// of the native <c>MarkdownView</c>.
+    /// True when the message should be rendered by <see cref="HighlightedMarkdownView"/>
+    /// (WebView + highlight.js) rather than the native streaming renderer.
+    /// This is true for every settled (non-streaming) message so that:
+    /// <list type="bullet">
+    ///   <item>Inline code (<c>`…`</c>), fenced code blocks, and all other markdown
+    ///         are rendered faithfully by Markdig + highlight.js.</item>
+    ///   <item>Content is always text-selectable (WebView allows native selection).</item>
+    ///   <item>The final content is reliably shown — the WebView is activated exactly
+    ///         once, when streaming ends, preventing the stale-invisible-navigation race.</item>
+    /// </list>
     /// </summary>
-    public bool HasCodeBlocks => Content.Contains("```", StringComparison.Ordinal);
+    public bool UseWebView => !IsStreaming;
+
+    /// <summary>
+    /// Preserved for compatibility — callers that still reference HasCodeBlocks will
+    /// always get <c>true</c> once streaming ends, matching the old behaviour for
+    /// code-containing messages while also covering inline-code and plain text.
+    /// </summary>
+    public bool HasCodeBlocks => Content.Contains('`', StringComparison.Ordinal);
 
     /// <summary>"▾ Thinking" while expanded, "▸ Thinking" while collapsed — bound by the toggle button.</summary>
     public string ThinkingHeader => IsThinkingActive
@@ -106,6 +120,7 @@ public sealed partial class ChatMessageItem : ObservableObject
     {
         if (!value)
         {
+            OnPropertyChanged(nameof(UseWebView));
             OnPropertyChanged(nameof(HasCodeBlocks));
             RefreshMedia(Content);
         }

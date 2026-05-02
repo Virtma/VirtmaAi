@@ -18,12 +18,45 @@ public sealed class HighlightedMarkdownView : ContentView
     public static readonly BindableProperty MarkdownTextProperty =
         BindableProperty.Create(nameof(MarkdownText), typeof(string),
             typeof(HighlightedMarkdownView), default(string?),
-            propertyChanged: (b, _, n) => ((HighlightedMarkdownView)b).Refresh((string?)n));
+            propertyChanged: (b, _, n) =>
+            {
+                var hmv = (HighlightedMarkdownView)b;
+                // Only render when this view is the active renderer.  During streaming,
+                // IsActive=false so we skip the WebView load entirely; the fast native
+                // MarkdownView is doing that job.  When streaming ends, IsActive flips to
+                // true and OnIsActiveChanged calls Refresh() itself.
+                if (hmv.IsActive) hmv.Refresh((string?)n);
+            });
+
+    /// <summary>
+    /// Controls whether the WebView renderer is the active content renderer.
+    /// <para>
+    /// <c>False</c> (default, during streaming): HeightRequest is collapsed to 0 so the
+    /// control takes no space, but the WebView platform handler is kept alive so that the
+    /// first navigation fires reliably when we flip to <c>True</c>.
+    /// </para>
+    /// <para>
+    /// <c>True</c> (streaming ended): HeightRequest is reset to 1 px and <see cref="Refresh"/>
+    /// is invoked immediately with the current <see cref="MarkdownText"/>.  The
+    /// <see cref="OnNavigated"/> callback then measures the rendered height and expands the
+    /// view to fit.
+    /// </para>
+    /// Bind to <c>UseWebView</c> on the item view-model so the switch happens exactly once,
+    /// the moment the streaming flag clears.
+    /// </summary>
+    public static readonly BindableProperty IsActiveProperty =
+        BindableProperty.Create(nameof(IsActive), typeof(bool),
+            typeof(HighlightedMarkdownView), false,
+            propertyChanged: (b, _, n) => ((HighlightedMarkdownView)b).OnIsActiveChanged((bool)n));
 
     public static readonly BindableProperty IsDarkModeProperty =
         BindableProperty.Create(nameof(IsDarkMode), typeof(bool),
             typeof(HighlightedMarkdownView), true,
-            propertyChanged: (b, _, _) => ((HighlightedMarkdownView)b).Refresh());
+            propertyChanged: (b, _, _) =>
+            {
+                var hmv = (HighlightedMarkdownView)b;
+                if (hmv.IsActive) hmv.Refresh();
+            });
 
     public static readonly BindableProperty OpenLinkCommandProperty =
         BindableProperty.Create(nameof(OpenLinkCommand), typeof(System.Windows.Input.ICommand),
@@ -41,6 +74,12 @@ public sealed class HighlightedMarkdownView : ContentView
     {
         get => (bool)GetValue(IsDarkModeProperty);
         set => SetValue(IsDarkModeProperty, value);
+    }
+
+    public bool IsActive
+    {
+        get => (bool)GetValue(IsActiveProperty);
+        set => SetValue(IsActiveProperty, value);
     }
 
     public System.Windows.Input.ICommand? OpenLinkCommand
@@ -90,14 +129,15 @@ public sealed class HighlightedMarkdownView : ContentView
         _webView = new WebView
         {
             BackgroundColor = Colors.Transparent,
-            HeightRequest = 1,
+            HeightRequest = 0,
             HorizontalOptions = LayoutOptions.Fill,
         };
         _webView.Navigating += OnNavigating;
         _webView.Navigated  += OnNavigated;
         Content = _webView;
 
-        HeightRequest = 1;
+        // Start collapsed — takes no space until IsActive=true.
+        HeightRequest = 0;
 
 #if WINDOWS
         // Subscribe to HandlerChanged so we can hook CoreWebView2.WebMessageReceived as
@@ -108,6 +148,30 @@ public sealed class HighlightedMarkdownView : ContentView
     }
 
     // ──────────────────────────── Core logic ─────────────────────────────────────
+
+    /// <summary>
+    /// Called when <see cref="IsActive"/> changes.  Expanding (true → active) triggers
+    /// <see cref="Refresh"/> immediately so the WebView gets its first navigation at the
+    /// exact moment the DataContext signals that streaming has ended.  Collapsing resets
+    /// heights to 0 so the inactive control takes no layout space.
+    /// </summary>
+    private void OnIsActiveChanged(bool active)
+    {
+        if (active)
+        {
+            // Allow layout space and trigger the initial WebView load.
+            _webView.HeightRequest = 1;
+            HeightRequest = 1;
+            Refresh();
+        }
+        else
+        {
+            // Collapse without removing from the visual tree — WebView handler stays alive
+            // so the next Refresh() fires reliably when IsActive flips back to true.
+            _webView.HeightRequest = 0;
+            HeightRequest = 0;
+        }
+    }
 
     private void Refresh(string? markdown = null)
     {

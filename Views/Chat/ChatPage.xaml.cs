@@ -50,12 +50,13 @@ public partial class ChatPage : ContentPage
     {
         base.OnAppearing();
         await _vm.LoadAsync();
-        // Re-pin on (re-)open and snap to bottom once layout is ready.
-        _pinnedToBottom = true;
-        ScrollToBottomIfPinned();
         // Re-subscribe in case OnDisappearing removed us (e.g. page nav).
         HighlightedMarkdownView.ScrollDeltaRequested -= OnWebViewScrollDelta;
         HighlightedMarkdownView.ScrollDeltaRequested += OnWebViewScrollDelta;
+        // Use the retry path: CollectionView items are in the ObservableCollection
+        // but the visual tree hasn't been measured yet, so ScrollableHeight is 0
+        // on the first attempt. The retries cover the rendering window.
+        ScrollToBottomWithRetries();
     }
 
     protected override void OnDisappearing()
@@ -96,10 +97,11 @@ public partial class ChatPage : ContentPage
         switch (e.Action)
         {
             case System.Collections.Specialized.NotifyCollectionChangedAction.Reset:
-                // Conversation switch — re-pin so the freshly-loaded conversation snaps to its
-                // latest message.
-                _pinnedToBottom = true;
-                break;
+                // Conversation switched — the ObservableCollection was cleared and refilled.
+                // Use the retry scroll: items are in the collection but the visual tree is
+                // being rebuilt, so ScrollableHeight is likely 0 on the first attempt.
+                ScrollToBottomWithRetries();
+                return; // ScrollToBottomWithRetries sets _pinnedToBottom; skip tail call below.
 
             case System.Collections.Specialized.NotifyCollectionChangedAction.Add when e.NewItems is not null:
                 foreach (var obj in e.NewItems)
@@ -150,6 +152,7 @@ public partial class ChatPage : ContentPage
         if (_vm.Messages.Count == 0) return;
         Dispatcher.Dispatch(() =>
         {
+            if (!_pinnedToBottom) return; // user may have scrolled away between dispatch and execution
             try
             {
                 _isProgrammaticScroll = true;
@@ -169,6 +172,29 @@ public partial class ChatPage : ContentPage
                 Dispatcher.Dispatch(() => _isProgrammaticScroll = false);
             }
         });
+    }
+
+    /// <summary>
+    /// Fires four scroll attempts spread over ~800 ms so the <see cref="MessagesList"/>
+    /// CollectionView has time to measure and render its items before we scroll.
+    /// Without retries, the first attempt fires when <c>ScrollableHeight</c> is still
+    /// 0 (items in the collection but visual tree not yet materialised), silently
+    /// scrolling to position 0 — i.e. the top — instead of the bottom.
+    /// </summary>
+    private void ScrollToBottomWithRetries()
+    {
+        _pinnedToBottom = true;
+        if (_vm.Messages.Count == 0) return;
+        // Attempt 1 — immediate (often enough for re-opens where the tree is intact)
+        ScrollToBottomIfPinned();
+        // Attempts 2-4 — deferred to cover the CollectionView measurement window
+        foreach (var ms in new[] { 150, 400, 800 })
+        {
+            Dispatcher.DispatchDelayed(TimeSpan.FromMilliseconds(ms), () =>
+            {
+                if (_pinnedToBottom) ScrollToBottomIfPinned();
+            });
+        }
     }
 
     // ===================== Platform-specific scroll detection =====================
@@ -223,6 +249,10 @@ public partial class ChatPage : ContentPage
             if (_scrollViewer is null && MessagesList.Handler?.PlatformView is Microsoft.UI.Xaml.DependencyObject root)
                 _scrollViewer = FindDescendant<Microsoft.UI.Xaml.Controls.ScrollViewer>(root);
             if (_scrollViewer is null) return false;
+            // Return false when items haven't been rendered yet so the caller falls through
+            // to MessagesList.ScrollTo() (index-based, defers until items are ready) and the
+            // retry loop keeps re-attempting until ScrollableHeight is > 0.
+            if (_scrollViewer.ScrollableHeight <= 0) return false;
             _scrollViewer.ChangeView(null, _scrollViewer.ScrollableHeight, null, disableAnimation: true);
             return true;
         }

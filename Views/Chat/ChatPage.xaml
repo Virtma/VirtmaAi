@@ -241,8 +241,37 @@
                                        FontSize="11"
                                        TextColor="{StaticResource Gray400}"/>
 
-                                <!-- Fast native renderer: used during streaming and for
-                                     settled messages that contain no fenced code blocks. -->
+                                <!-- Thinking block: always rendered BEFORE the response content
+                                     so the user reads the reasoning first, then the answer. -->
+                                <Border IsVisible="{Binding HasThinking}"
+                                        Stroke="{StaticResource Gray600}"
+                                        StrokeThickness="1"
+                                        BackgroundColor="{StaticResource SurfaceDarkAlt}"
+                                        Padding="0"
+                                        Margin="0,0,0,4">
+                                    <VerticalStackLayout>
+                                        <Button Text="{Binding ThinkingHeader}"
+                                                Command="{Binding ToggleThinkingCommand}"
+                                                BackgroundColor="Transparent"
+                                                BorderColor="Transparent"
+                                                Padding="10,8"
+                                                HorizontalOptions="Fill"
+                                                FontSize="11"
+                                                TextColor="{StaticResource Gray300}"/>
+                                        <ScrollView IsVisible="{Binding IsThinkingExpanded}"
+                                                    Padding="10,0,10,10"
+                                                    MaximumHeightRequest="320">
+                                            <Label Text="{Binding Thinking}"
+                                                   FontSize="12"
+                                                   TextColor="{StaticResource Gray300}"
+                                                   LineBreakMode="WordWrap"/>
+                                        </ScrollView>
+                                    </VerticalStackLayout>
+                                </Border>
+
+                                <!-- Fast native renderer — ONLY used during active streaming.
+                                     Hidden the instant UseWebView becomes true (IsStreaming=false).
+                                     Live updates during streaming are the sole purpose of this view. -->
                                 <markdown:MarkdownView MarkdownText="{Binding Content}"
                                                        Theme="{StaticResource ChatMarkdownTheme}"
                                                        UseAppTheme="True"
@@ -252,35 +281,25 @@
                                                        LinkCommand="{Binding Source={x:Reference MessagesList}, Path=BindingContext.OpenLinkCommand}"
                                                        EMailCommand="{Binding Source={x:Reference MessagesList}, Path=BindingContext.OpenEmailCommand}">
                                     <markdown:MarkdownView.Triggers>
-                                        <!-- Hide the native view once streaming ends AND
-                                             the message has code blocks; WebView takes over. -->
-                                        <MultiTrigger TargetType="markdown:MarkdownView">
-                                            <MultiTrigger.Conditions>
-                                                <BindingCondition Binding="{Binding IsStreaming}" Value="False"/>
-                                                <BindingCondition Binding="{Binding HasCodeBlocks}" Value="True"/>
-                                            </MultiTrigger.Conditions>
+                                        <!-- Streaming ended → hand off to WebView renderer. -->
+                                        <DataTrigger TargetType="markdown:MarkdownView"
+                                                     Binding="{Binding UseWebView}" Value="True">
                                             <Setter Property="IsVisible" Value="False"/>
-                                        </MultiTrigger>
+                                        </DataTrigger>
                                     </markdown:MarkdownView.Triggers>
                                 </markdown:MarkdownView>
 
-                                <!-- Highlighted renderer: WebView + highlight.js, only for
-                                     settled messages that contain at least one code block. -->
+                                <!-- Full-fidelity WebView renderer — used for ALL settled messages.
+                                     Provides: syntax-highlighted code, inline-code styling, tables,
+                                     native text selection, and reliable final-content display.
+                                     IsActive (not IsVisible) is used so the WebView platform handler
+                                     is kept alive at all times; toggling IsVisible would defer or
+                                     drop the first navigation on Windows. -->
                                 <chatviews:HighlightedMarkdownView
                                     MarkdownText="{Binding Content}"
                                     IsDarkMode="True"
-                                    OpenLinkCommand="{Binding Source={x:Reference MessagesList}, Path=BindingContext.OpenLinkCommand}"
-                                    IsVisible="False">
-                                    <chatviews:HighlightedMarkdownView.Triggers>
-                                        <MultiTrigger TargetType="chatviews:HighlightedMarkdownView">
-                                            <MultiTrigger.Conditions>
-                                                <BindingCondition Binding="{Binding IsStreaming}" Value="False"/>
-                                                <BindingCondition Binding="{Binding HasCodeBlocks}" Value="True"/>
-                                            </MultiTrigger.Conditions>
-                                            <Setter Property="IsVisible" Value="True"/>
-                                        </MultiTrigger>
-                                    </chatviews:HighlightedMarkdownView.Triggers>
-                                </chatviews:HighlightedMarkdownView>
+                                    IsActive="{Binding UseWebView}"
+                                    OpenLinkCommand="{Binding Source={x:Reference MessagesList}, Path=BindingContext.OpenLinkCommand}"/>
                                 <CollectionView ItemsSource="{Binding Images}"
                                                 IsVisible="{Binding Images.Count, Converter={StaticResource IsGreaterThanZeroConverter}}"
                                                 ItemSizingStrategy="MeasureAllItems">
@@ -302,33 +321,6 @@
                                         </DataTemplate>
                                     </CollectionView.ItemTemplate>
                                 </CollectionView>
-                                <Border IsVisible="{Binding HasThinking}"
-                                        Stroke="{StaticResource Gray600}"
-                                        StrokeThickness="1"
-                                        BackgroundColor="{StaticResource SurfaceDarkAlt}"
-                                        Padding="0"
-                                        Margin="0,4,0,0">
-                                    <VerticalStackLayout>
-                                        <!-- Header: tap to toggle expanded/collapsed. While streaming
-                                             thinking, the indicator pulses (FontAttributes=Bold). -->
-                                        <Button Text="{Binding ThinkingHeader}"
-                                                Command="{Binding ToggleThinkingCommand}"
-                                                BackgroundColor="Transparent"
-                                                BorderColor="Transparent"
-                                                Padding="10,8"
-                                                HorizontalOptions="Fill"
-                                                FontSize="11"
-                                                TextColor="{StaticResource Gray300}"/>
-                                        <ScrollView IsVisible="{Binding IsThinkingExpanded}"
-                                                    Padding="10,0,10,10"
-                                                    MaximumHeightRequest="320">
-                                            <Label Text="{Binding Thinking}"
-                                                   FontSize="12"
-                                                   TextColor="{StaticResource Gray300}"
-                                                   LineBreakMode="WordWrap"/>
-                                        </ScrollView>
-                                    </VerticalStackLayout>
-                                </Border>
                             </VerticalStackLayout>
                         </Border>
                     </DataTemplate>

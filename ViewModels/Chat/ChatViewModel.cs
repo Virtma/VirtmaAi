@@ -50,6 +50,7 @@ public sealed partial class ChatViewModel : ViewModelBase
     private readonly IFolderPickerService _folderPicker;
     private readonly IFilePickerService  _filePicker;
     private readonly IPluginHost _plugins;
+    private readonly IErrorLogService _errorLog;
     private readonly ILogger<ChatViewModel> _logger;
     private CancellationTokenSource? _streamCts;
     private bool _suppressModeSave;
@@ -71,6 +72,7 @@ public sealed partial class ChatViewModel : ViewModelBase
         IFolderPickerService folderPicker,
         IFilePickerService filePicker,
         IPluginHost plugins,
+        IErrorLogService errorLog,
         PreviewViewModel preview,
         ILogger<ChatViewModel> logger)
     {
@@ -89,6 +91,7 @@ public sealed partial class ChatViewModel : ViewModelBase
         _folderPicker = folderPicker;
         _filePicker = filePicker;
         _plugins = plugins;
+        _errorLog = errorLog;
         Preview = preview;
         _logger = logger;
 
@@ -240,7 +243,28 @@ public sealed partial class ChatViewModel : ViewModelBase
                 .Where(m => m.ConversationId == item.Id)
                 .OrderBy(m => m.CreatedAt)
                 .ToListAsync();
-            foreach (var m in msgs) Messages.Add(new ChatMessageItem(m));
+            // Thinking text is stored as a separate Message row (Role=Thinking) with
+            // ParentMessageId pointing to its assistant message.  Build a lookup so we
+            // can attach the thinking text to the correct ChatMessageItem instead of
+            // rendering it as a standalone, uncollapsible message.
+            var thinkingByParent = msgs
+                .Where(m => m.Role == MessageRole.Thinking)
+                .ToDictionary(m => m.ParentMessageId ?? Guid.Empty, m => m.Content);
+
+            foreach (var m in msgs)
+            {
+                if (m.Role == MessageRole.Thinking) continue; // merged into parent below
+                var msgItem = new ChatMessageItem(m);
+                if (m.Role == MessageRole.Assistant &&
+                    thinkingByParent.TryGetValue(m.Id, out var thinkingText) &&
+                    !string.IsNullOrEmpty(thinkingText))
+                {
+                    msgItem.Thinking = thinkingText;
+                    // Collapsed by default when loaded from DB (the user already saw it live).
+                    msgItem.IsThinkingExpanded = false;
+                }
+                Messages.Add(msgItem);
+            }
 
             ProjectDir = conv?.ProjectDir;
             TrySetSandboxRoot(ProjectDir);
@@ -950,7 +974,13 @@ public sealed partial class ChatViewModel : ViewModelBase
                             break;
                         case StreamError e:
                             ErrorMessage = e.Message;
+                            _errorLog.AppendError("Stream error", e.Message);
                             await _toast.ErrorAsync(e.Message);
+                            // Show the error permanently inside the assistant bubble so the
+                            // user always sees *why* there is no response — not just a
+                            // transient toast that disappears before they notice it.
+                            if (string.IsNullOrEmpty(currentItem.Content))
+                                currentItem.Content = $"_(Stream error: {e.Message})_";
                             break;
                         case StreamCompleted done:
                             // Final flush of any unflushed buffer text.
@@ -968,13 +998,41 @@ public sealed partial class ChatViewModel : ViewModelBase
                 if (contentDirty) currentItem.Content = contentBuf.ToString();
                 if (thinkingDirty) currentItem.Thinking = thinkingBuf.ToString();
 
+                // Unconditionally settle the item.  In the normal path StreamCompleted already
+                // set IsStreaming = false and these are no-ops.  In the error path (StreamError
+                // without a following StreamCompleted, or an abrupt connection drop) this prevents
+                // the item from staying in a permanent "loading" state with a stuck spinner and
+                // no response text visible to the user.
+                if (currentItem.IsStreaming)
+                {
+                    currentItem.IsThinkingActive = false;
+                    currentItem.IsStreaming = false;
+                }
+
                 if (completed is not null)
                     await PersistAssistantAsync(streamConvId, currentItem, completed);
                 if (!string.IsNullOrEmpty(currentItem.Content))
                     privateHistory.Add(new ChatMessage(ChatRole.Assistant, currentItem.Content));
                 DetectArtifacts(currentItem.Content);
 
+                // Show a spinning placeholder immediately so the user sees the app is working
+                // during the (potentially 1–15 s) plugin network calls, instead of a frozen UI.
+                ChatMessageItem? progressPlaceholder = null;
+                if (ActiveConversation?.Id == streamConvId &&
+                    ToolCallRegex.IsMatch(currentItem.Content))
+                {
+                    progressPlaceholder = new ChatMessageItem(
+                        Guid.NewGuid(), MessageRole.Assistant) { IsStreaming = true };
+                    Messages.Add(progressPlaceholder);
+                }
+
                 var toolResults = await ExecuteToolCallsAsync(currentItem.Content, _streamCts.Token).ConfigureAwait(true);
+
+                // Remove the placeholder regardless of outcome — it's replaced by either the
+                // real tool-result message + next streaming item, or nothing if no calls ran.
+                if (progressPlaceholder is not null && ActiveConversation?.Id == streamConvId)
+                    Messages.Remove(progressPlaceholder);
+
                 if (string.IsNullOrEmpty(toolResults)) break;
 
                 var toolMsg = new Message
@@ -1125,6 +1183,18 @@ public sealed partial class ChatViewModel : ViewModelBase
         sb.AppendLine("- `{ \"file\": \"/path/to/video.mp4\", \"frames\": 6, \"prompt\": \"What sport is being played?\" }` — custom frame count + question.");
         sb.AppendLine("`frames` is 1–10 (default 4). Use this whenever the user asks you to describe, summarize, or answer questions about video content.");
         sb.AppendLine();
+        sb.AppendLine("### web-search input shape");
+        sb.AppendLine("Searches the internet or browses a URL. DuckDuckGo requires no API key; Google and Bing require keys in Settings → API Keys.");
+        sb.AppendLine("**Search actions:**");
+        sb.AppendLine("- `{ \"action\": \"search\", \"query\": \"latest news on X\" }` — DuckDuckGo (default, no key needed).");
+        sb.AppendLine("- `{ \"action\": \"search\", \"query\": \"C# 13 features\", \"engine\": \"bing\", \"max_results\": 8 }` — Bing with 8 results.");
+        sb.AppendLine("- `{ \"action\": \"search\", \"query\": \"site:github.com MAUI\", \"engine\": \"google\" }` — Google Custom Search.");
+        sb.AppendLine("**Browse actions:**");
+        sb.AppendLine("- `{ \"action\": \"browse\", \"url\": \"https://learn.microsoft.com/en-us/dotnet/maui/\" }` — fetch and read a page.");
+        sb.AppendLine("- `{ \"action\": \"browse\", \"url\": \"https://api.example.com/data\" }` — read a JSON/XML endpoint.");
+        sb.AppendLine("Supported engines: `duckduckgo` (default), `google`, `bing`. `max_results` is 1–10, default 5.");
+        sb.AppendLine("**Use this proactively** whenever: the user asks about current events, recent releases, prices, documentation, people, places, or anything that may be outside your training data. If the user asks you to 'search', 'look up', 'find', 'browse', or 'check online', always use this plugin.");
+        sb.AppendLine();
         sb.AppendLine("Use these tools whenever they are the right way to fulfill the user's request. Never tell the user you lack the ability to perform a local operation that one of these plugins covers. **In Code mode, always use `project-files` to actually create or modify files — printing code in markdown does not save it to disk.**");
         return sb.ToString();
     }
@@ -1206,7 +1276,18 @@ public sealed partial class ChatViewModel : ViewModelBase
                     : "{}";
 
                 _logger.LogInformation("Invoking built-in plugin {Plugin}", pluginName);
-                var result = await _plugins.InvokeBuiltInAsync(pluginName, inputJson, ct).ConfigureAwait(false);
+                // ConfigureAwait(true) is intentional: the result processing below touches
+                // _errorLog (ObservableCollection) and Preview.OpenAsync (ViewModel properties).
+                // Both must happen on the UI thread; ConfigureAwait(false) here caused AV crashes.
+                var result = await _plugins.InvokeBuiltInAsync(pluginName, inputJson, ct).ConfigureAwait(true);
+
+                // Log non-successful results to the Errors & Warnings tab so they are
+                // always discoverable even if the user misses the tool-result bubble.
+                if (!result.Success)
+                    _errorLog.AppendWarning(
+                        $"Plugin '{pluginName}' returned an error",
+                        result.Error ?? result.Output ?? "(no details)");
+
                 results.Append("### Tool result: ").AppendLine(pluginName);
                 results.AppendLine("```");
                 if (!string.IsNullOrEmpty(result.Output)) results.AppendLine(TruncateForChat(result.Output).TrimEnd());
@@ -1224,9 +1305,11 @@ public sealed partial class ChatViewModel : ViewModelBase
                     TryOpenCreatedFileInPreview(inEl);
                 }
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; } // user Stop must propagate — don't swallow
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Tool call execution failed for {Plugin}", pluginName);
+                _errorLog.AppendError($"Plugin '{pluginName}' threw an exception", ex.Message);
                 results.Append("### Tool error: ").AppendLine(pluginName);
                 results.Append("```\n").Append(ex.Message).AppendLine("\n```");
             }
